@@ -383,9 +383,13 @@ const Attendance = () => {
         </Button>
       </div>
 
-      {/* --- ТАБЛИЦА --- */}
+      {/* --- ОТОБРАЖЕНИЕ ДАННЫХ (АДАПТИВНОЕ) --- */}
       {isLoading ? <Loader2 className="animate-spin w-8 h-8 mx-auto mt-10" /> : (
-        <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+        <>
+        {/* ================================================================================== */}
+        {/* 1. ВЕРСИЯ ДЛЯ КОМПЬЮТЕРА (hidden md:block) */}
+        {/* ================================================================================== */}
+        <div className="hidden md:block border rounded-lg overflow-hidden bg-white shadow-sm">
             <table className="w-full text-sm text-left">
                 <thead className="bg-gray-100 text-gray-700 font-bold border-b">
                     <tr>
@@ -483,6 +487,107 @@ const Attendance = () => {
                 </tbody>
             </table>
         </div>
+
+        {/* ================================================================================== */}
+        {/* 2. ВЕРСИЯ ДЛЯ ТЕЛЕФОНА (md:hidden) */}
+        {/* ================================================================================== */}
+        <div className="md:hidden space-y-4 pb-20">
+          {reportData.length === 0 ? (
+              <div className="p-6 text-center text-gray-500 bg-white rounded-lg border">Занятий за этот период не найдено</div>
+          ) : (
+              reportData.map((session: any) => (
+                  <div key={session.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                      
+                      {/* Шапка карточки */}
+                      <div className="flex justify-between items-start mb-3 border-b border-gray-100 pb-2">
+                          <div>
+                              <div className="text-xl font-bold text-gray-900">
+                                  {format(parseISO(session.start_time), 'HH:mm')}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                  {format(parseISO(session.start_time), 'dd.MM.yyyy')}
+                              </div>
+                          </div>
+                          <div className="text-right">
+                              <Badge variant="outline" className="mb-1 border-blue-200 text-blue-700 bg-blue-50">
+                                  {session.class_type?.name}
+                              </Badge>
+                              <div className="text-xs text-gray-400">{getCoachName(session.coach)}</div>
+                          </div>
+                      </div>
+
+                      {/* Список людей внутри урока */}
+                      <div className="space-y-3">
+                          {session.bookings && session.bookings.length > 0 ? (
+                              session.bookings.map((booking: any) => {
+                                  const client = booking.user;
+                                  
+                                  // Определяем цвет для карточки клиента
+                                  let bgClass = "bg-slate-50 border-gray-100";
+                                  if (booking.status === 'completed') bgClass = "bg-green-50 border-green-100";
+                                  if (booking.status === 'cancelled') bgClass = "bg-red-50 border-red-100";
+
+                                  return (
+                                      <div key={booking.id} className={`p-3 rounded-lg border ${bgClass} flex flex-col gap-2`}>
+                                          <div className="flex justify-between items-center">
+                                              <div className="font-semibold text-sm truncate max-w-[160px]">
+                                                  {client ? `${client.first_name} ${client.last_name || ''}` : "Неизвестный"}
+                                              </div>
+                                              {/* Кнопка WhatsApp (КРУПНАЯ для пальца) */}
+                                              {client?.phone && (
+                                                  <Button 
+                                                      size="sm" 
+                                                      variant="outline" 
+                                                      className="h-8 w-8 p-0 rounded-full border-green-200 text-green-600 bg-white"
+                                                      onClick={() => sendWhatsApp(client, booking.status === 'cancelled' ? 'cancel' : 'remind', session)}
+                                                  >
+                                                      <MessageCircle className="w-4 h-4" />
+                                                  </Button>
+                                              )}
+                                          </div>
+
+                                          {/* Управление статусом */}
+                                          <Select
+                                              defaultValue={booking.status}
+                                              onValueChange={(val) => updateStatusMutation.mutate({
+                                                  id: booking.id,
+                                                  status: val,
+                                                  sessionDate: format(parseISO(session.start_time), 'yyyy-MM-dd'),
+                                                  sessionTime: session.start_time 
+                                              })}
+                                          >
+                                              <SelectTrigger className="w-full h-8 text-xs font-medium bg-white shadow-sm border-gray-200">
+                                                  <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                  <SelectItem value="booked">📅 Записан</SelectItem>
+                                                  <SelectItem value="completed">✅ Пришел</SelectItem>
+                                                  <SelectItem value="cancelled">❌ Отмена</SelectItem>
+                                              </SelectContent>
+                                          </Select>
+                                      </div>
+                                  );
+                              })
+                          ) : (
+                              <div className="text-center text-gray-400 text-xs italic py-2">Нет записей</div>
+                          )}
+                      </div>
+
+                      {/* Кнопки действий с уроком */}
+                      <div className="mt-4 pt-3 border-t border-gray-100">
+                           <Button 
+                              variant="ghost" 
+                              className="w-full text-orange-600 bg-orange-50 hover:bg-orange-100 h-9 text-xs"
+                              onClick={() => handleGroupNotify(session)}
+                          >
+                              <Megaphone className="w-4 h-4 mr-2" /> Оповестить всех
+                          </Button>
+                      </div>
+                  </div>
+              ))
+          )}
+        </div>
+        </>
       )}
 
       {/* --- ДИАЛОГ ГРУППОВОГО ОПОВЕЩЕНИЯ --- */}
