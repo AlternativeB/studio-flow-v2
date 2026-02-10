@@ -1,31 +1,30 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
-import { MobileNav } from "./MobileNav"; // Импортируем наше новое меню
+import { MobileNav } from "./MobileNav";
 
 export const AdminLayout = () => {
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    // 1. УБРАЛИ 'flex', оставили просто min-h-screen
+    <div className="min-h-screen bg-slate-50 relative">
       
-      {/* 1. БОКОВОЕ МЕНЮ */}
-      {/* hidden = скрыто по умолчанию (на телефоне) */}
-      {/* md:block = показывается только на экранах шире телефона (Desktop) */}
+      {/* Боковое меню (Desktop) */}
       <div className="hidden md:block">
         <Sidebar />
       </div>
 
-      {/* 2. ОСНОВНАЯ ОБЛАСТЬ */}
-      {/* ml-0 = на телефоне отступа слева НЕТ */}
-      {/* md:ml-64 = на компьютере отступ ЕСТЬ (твой старый класс) */}
-      {/* pb-20 = отступ снизу на телефоне, чтобы контент не перекрывался меню */}
-      {/* md:pb-0 = на компьютере отступ снизу не нужен */}
-      <main className="flex-1 ml-0 md:ml-64 p-4 md:p-8 overflow-y-auto h-screen pb-24 md:pb-0">
-        <div className="max-w-7xl mx-auto space-y-6">
+      {/* Основная область */}
+      {/* w-full = на мобильном ширина 100% */}
+      {/* ml-0 = на мобильном отступа слева нет */}
+      {/* md:ml-64 = на ПК отступ 64 (256px) под сайдбар */}
+      {/* pb-20 = отступ снизу, чтобы мобильное меню не закрывало контент */}
+      <main className="w-full md:w-auto ml-0 md:ml-64 p-4 md:p-8 min-h-screen pb-24 md:pb-8 transition-all">
+        {/* Ограничитель ширины, чтобы на больших экранах не растягивалось слишком сильно */}
+        <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in">
           <Outlet />
         </div>
       </main>
 
-      {/* 3. МОБИЛЬНОЕ МЕНЮ */}
-      {/* Оно само внутри себя знает, что на компе показываться не надо */}
+      {/* Мобильное меню (Mobile) */}
       <MobileNav />
       
     </div>
