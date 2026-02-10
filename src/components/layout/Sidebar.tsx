@@ -48,7 +48,7 @@ export const Sidebar = () => {
     <div className="h-screen w-64 bg-slate-900 text-white flex flex-col fixed left-0 top-0 border-r border-slate-800 z-50">
       <div className="p-6">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
-          StudioFlow
+          Balance yoga studio
         </h1>
         <p className="text-xs text-slate-400 mt-1">Панель управления</p>
       </div>
