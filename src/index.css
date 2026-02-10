@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm, calming yoga studio palette */
+    --background: 40 30% 97%;
+    --foreground: 220 20% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 15%;
+
+    /* Sage green primary */
+    --primary: 150 25% 35%;
+    --primary-foreground: 40 30% 97%;
+
+    /* Warm cream secondary */
+    --secondary: 35 40% 92%;
+    --secondary-foreground: 220 20% 20%;
+
+    --muted: 40 20% 94%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 18 40% 60%;
+    --accent-foreground: 40 30% 97%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 150 25% 35%;
+    --radius: 0.75rem;
+
+    --sidebar-background: 150 25% 33%;
+    --sidebar-foreground: 40 30% 97%;
+    --sidebar-primary: 40 30% 97%;
+    --sidebar-primary-foreground: 150 25% 35%;
+    --sidebar-accent: 150 25% 30%;
+    --sidebar-accent-foreground: 40 30% 97%;
+    --sidebar-border: 150 25% 30%;
+    --sidebar-ring: 40 30% 97%;
+  }
+ 
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+.stat-card {
+  @apply bg-card p-6 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-all duration-200;
+}
+
+.stat-value {
+  @apply text-3xl font-serif font-medium tracking-tight text-foreground;
+}
+
+.stat-label {
+  @apply text-sm text-muted-foreground mt-1;
+}
+
+.nav-item {
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-150;
+}
+
+.nav-item-active {
+  @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground;
+}
+
+.table-header {
+  @apply text-xs font-medium text-muted-foreground uppercase tracking-wider;
+}
+
+.status-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.status-active {
+  @apply bg-success/10 text-success;
+}
+
+.status-frozen {
+  @apply bg-warning/10 text-warning;
+}
+
+.status-archived {
+  @apply bg-muted text-muted-foreground;
+}
+
+.page-header {
+  @apply flex items-center justify-between mb-8;
+}
+
+.page-title {
+  @apply text-2xl font-medium text-foreground;
+}
+
+.section-title {
+  @apply text-lg font-medium text-foreground mb-4;
+}
