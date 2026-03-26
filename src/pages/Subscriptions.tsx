@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Pencil, Trash2, X, Check, ChevronsUpDown, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2, X, Check, ChevronsUpDown, Calendar as CalendarIcon, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -382,6 +382,55 @@ const Subscriptions = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* ФИЛЬТРЫ */}
+      <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Фильтры</span>
+          {(filterClient || filterPlan !== "all" || filterStatus !== "all") && (
+            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => {
+              setFilterClient(""); setFilterPlan("all"); setFilterStatus("all");
+            }}>
+              Сбросить
+            </Button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Поиск по клиенту"
+              value={filterClient}
+              onChange={e => setFilterClient(e.target.value)}
+              className="h-8 text-sm pl-9"
+            />
+          </div>
+          <select
+            value={filterPlan}
+            onChange={e => setFilterPlan(e.target.value)}
+            className="h-8 text-sm border rounded-md px-2 bg-background"
+          >
+            <option value="all">Все тарифы</option>
+            {plans.map((p: any) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="h-8 text-sm border rounded-md px-2 bg-background"
+          >
+            <option value="all">Все статусы</option>
+            <option value="active">Действует</option>
+            <option value="pending">Ждет активации</option>
+            <option value="warning">Скоро истекает</option>
+            <option value="expired">Истек / Закончился</option>
+          </select>
+        </div>
+        {(filterClient || filterPlan !== "all" || filterStatus !== "all") && (
+          <p className="text-xs text-muted-foreground">Найдено: {filteredSubs.length} из {subscriptions.length}</p>
+        )}
       </div>
 
       <div className="overflow-x-auto bg-white rounded-lg border shadow-sm">
