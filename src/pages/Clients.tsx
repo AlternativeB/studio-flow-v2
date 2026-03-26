@@ -241,7 +241,7 @@ export default function Clients() {
                             <span className="text-gray-400">-</span>
                         )}
                     </TableCell>
-                    <TableCell>{client.balance} ₸</TableCell>
+                    <TableCell>{client.balance != null ? `${client.balance} ₸` : '—'}</TableCell>
                     <TableCell className="text-right">
                         <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -261,7 +261,7 @@ export default function Clients() {
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/clients/${client.id}`); }}>
                             Просмотр
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); /* Логика редактирования */ }}>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/clients/${client.id}`); }}>
                             Редактировать
                             </DropdownMenuItem>
                         </DropdownMenuContent>

@@ -12,16 +12,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const ClientInstructors = () => {
   const [selectedCoach, setSelectedCoach] = useState<any>(null);
 
-  // Загружаем тренеров
+  // Загружаем тренеров со специализациями
   const { data: instructors = [], isLoading } = useQuery({
     queryKey: ['portal_instructors'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('coaches')
-        .select('*')
+        .select('*, specializations:coach_class_types(class_type:class_types(name, color))')
         .eq('is_active', true)
         .order('name');
-      
+
       if (error) throw error;
       return data;
     }
@@ -54,9 +54,19 @@ const ClientInstructors = () => {
                   
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-lg truncate">{coach.name}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2 mt-1 leading-snug">
-                      {coach.description || "Инструктор студии"}
-                    </p>
+                    {coach.specializations?.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {coach.specializations.map((s: any, i: number) => (
+                          <span key={i} className="text-[10px] font-medium px-1.5 py-0.5 rounded-md text-white" style={{ backgroundColor: s.class_type?.color || '#6b7280' }}>
+                            {s.class_type?.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 line-clamp-2 mt-1 leading-snug">
+                        {coach.description || "Инструктор студии"}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -95,9 +105,15 @@ const ClientInstructors = () => {
                     <DialogHeader className="mb-4 text-left">
                         <DialogTitle className="text-2xl font-bold">{selectedCoach?.name}</DialogTitle>
                         {/* Если есть отдельное поле специализации, можно добавить его сюда */}
-                        <DialogDescription className="text-base font-medium text-primary">
-                            Инструктор
-                        </DialogDescription>
+                        {selectedCoach?.specializations?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {selectedCoach.specializations.map((s: any, i: number) => (
+                          <span key={i} className="text-xs font-medium px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: s.class_type?.color || '#6b7280' }}>
+                            {s.class_type?.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     </DialogHeader>
 
                     <ScrollArea className="max-h-[300px] pr-2">

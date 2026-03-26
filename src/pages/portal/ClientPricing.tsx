@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { ClientLayout } from "@/components/layout/ClientLayout";
 
 const ClientPricing = () => {
@@ -14,6 +13,20 @@ const ClientPricing = () => {
       return data;
     },
   });
+
+  const { data: adminPhone } = useQuery({
+    queryKey: ['studio_phone'],
+    queryFn: async () => {
+      const { data } = await supabase.from('studio_info').select('value').eq('key', 'phone').single();
+      return data?.value || '';
+    }
+  });
+
+  const buyViaWhatsApp = (planName: string) => {
+    if (!adminPhone) return;
+    const text = `Здравствуйте! Хочу купить абонемент "${planName}".`;
+    window.open(`https://wa.me/${adminPhone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   return (
     <ClientLayout>
@@ -43,8 +56,8 @@ const ClientPricing = () => {
                   </div>
               </div>
 
-              <Button className="w-full rounded-xl h-12" variant="outline" onClick={() => toast.info("Пожалуйста, обратитесь к администратору для покупки")}>
-                  Купить
+              <Button className="w-full rounded-xl h-12" onClick={() => buyViaWhatsApp(plan.name)} disabled={!adminPhone}>
+                  Купить через WhatsApp
               </Button>
             </div>
           ))
