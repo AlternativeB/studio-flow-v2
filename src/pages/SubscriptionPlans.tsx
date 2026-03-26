@@ -17,6 +17,16 @@ const SubscriptionPlans = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<any>(null);
 
+  // Фильтры
+  const [filterName, setFilterName] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
+  const [filterMinPrice, setFilterMinPrice] = useState("");
+  const [filterMaxPrice, setFilterMaxPrice] = useState("");
+  const [filterMinVisits, setFilterMinVisits] = useState("");
+  const [filterMaxVisits, setFilterMaxVisits] = useState("");
+  const [filterMinDays, setFilterMinDays] = useState("");
+  const [filterMaxDays, setFilterMaxDays] = useState("");
+
   // Форма
   const [formData, setFormData] = useState({
     name: "",
@@ -103,6 +113,21 @@ const SubscriptionPlans = () => {
     setIsOpen(true);
   };
 
+  const filteredPlans = plans.filter((plan: any) => {
+    if (filterName && !plan.name.toLowerCase().includes(filterName.toLowerCase())) return false;
+    if (filterStatus === "active" && !plan.is_active) return false;
+    if (filterStatus === "inactive" && plan.is_active) return false;
+    if (filterMinPrice && plan.price < Number(filterMinPrice)) return false;
+    if (filterMaxPrice && plan.price > Number(filterMaxPrice)) return false;
+    if (filterMinVisits && plan.visits_count !== null && plan.visits_count < Number(filterMinVisits)) return false;
+    if (filterMaxVisits && plan.visits_count !== null && plan.visits_count > Number(filterMaxVisits)) return false;
+    if (filterMinDays && plan.duration_days < Number(filterMinDays)) return false;
+    if (filterMaxDays && plan.duration_days > Number(filterMaxDays)) return false;
+    return true;
+  });
+
+  const hasActiveFilters = filterName || filterStatus !== "all" || filterMinPrice || filterMaxPrice || filterMinVisits || filterMaxVisits || filterMinDays || filterMaxDays;
+
   return (
     <div className="space-y-6 animate-in fade-in">
       <div className="flex items-center justify-between">
@@ -115,10 +140,59 @@ const SubscriptionPlans = () => {
         </Button>
       </div>
 
+      {/* ФИЛЬТРЫ */}
+      <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Фильтры</span>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => {
+              setFilterName(""); setFilterStatus("all");
+              setFilterMinPrice(""); setFilterMaxPrice("");
+              setFilterMinVisits(""); setFilterMaxVisits("");
+              setFilterMinDays(""); setFilterMaxDays("");
+            }}>
+              Сбросить
+            </Button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <Input
+            placeholder="Поиск по названию"
+            value={filterName}
+            onChange={e => setFilterName(e.target.value)}
+            className="h-8 text-sm"
+          />
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value as any)}
+            className="h-8 text-sm border rounded-md px-2 bg-background"
+          >
+            <option value="all">Все статусы</option>
+            <option value="active">Активные</option>
+            <option value="inactive">Архив</option>
+          </select>
+          <div className="flex gap-2">
+            <Input placeholder="Цена от" type="number" value={filterMinPrice} onChange={e => setFilterMinPrice(e.target.value)} className="h-8 text-sm" />
+            <Input placeholder="до" type="number" value={filterMaxPrice} onChange={e => setFilterMaxPrice(e.target.value)} className="h-8 text-sm" />
+          </div>
+          <div className="flex gap-2">
+            <Input placeholder="Занятий от" type="number" value={filterMinVisits} onChange={e => setFilterMinVisits(e.target.value)} className="h-8 text-sm" />
+            <Input placeholder="до" type="number" value={filterMaxVisits} onChange={e => setFilterMaxVisits(e.target.value)} className="h-8 text-sm" />
+          </div>
+          <div className="flex gap-2 sm:col-span-2 md:col-span-1">
+            <Input placeholder="Дней от" type="number" value={filterMinDays} onChange={e => setFilterMinDays(e.target.value)} className="h-8 text-sm" />
+            <Input placeholder="до" type="number" value={filterMaxDays} onChange={e => setFilterMaxDays(e.target.value)} className="h-8 text-sm" />
+          </div>
+        </div>
+        {hasActiveFilters && (
+          <p className="text-xs text-muted-foreground">Найдено: {filteredPlans.length} из {plans.length}</p>
+        )}
+      </div>
+
       {isLoading ? <Loader2 className="animate-spin" /> : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {plans.length === 0 && <p className="text-muted-foreground col-span-full">Нет созданных тарифов.</p>}
-          {plans.map((plan: any) => (
+          {filteredPlans.length === 0 && <p className="text-muted-foreground col-span-full">Нет тарифов по выбранным фильтрам.</p>}
+          {filteredPlans.map((plan: any) => (
             <Card key={plan.id} className={`relative transition-all hover:shadow-md flex flex-col ${!plan.is_active ? 'opacity-60 grayscale' : ''}`}>
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
