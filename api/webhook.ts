@@ -1,18 +1,22 @@
 // api/webhook.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
 
-// Токен и ID чата берем из переменных окружения (настроим на шаге 6.3)
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 
+// Supabase с service_role ключом — для чтения данных внутри вебхука
+const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Проверка метода (Supabase шлет POST)
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
   }
 
-  // Проверка секретного ключа (чтобы никто левый не слал фейковые уведомления)
-  // Мы зададим этот ключ в URL вебхука в Supabase: /api/webhook?secret=MY_SECRET
   const { secret } = req.query;
   if (secret !== process.env.WEBHOOK_SECRET) {
     return res.status(401).send('Unauthorized');
@@ -22,42 +26,107 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let message = '';
 
   try {
-    // === ЛОГИКА УВЕДОМЛЕНИЙ ===
 
-    // 1. Новый клиент (INSERT в таблицу profiles)
-    if (table === 'profiles' && type === 'INSERT') {
-      message = `
-🎉 <b>Новый клиент!</b>
-👤 Имя: ${record.first_name || 'Не указано'} ${record.last_name || ''}
-📱 Телефон: ${record.phone || 'Нет'}
-✉️ Email: ${record.email || 'Нет'}
-      `;
+    // ── 1. НОВЫЙ КЛИЕНТ ──────────────────────────────────────────────
+    if (table === 'profiles' && type === 'INSERT' && record.role === 'client') {
+      message = [
+        `🎉 <b>Новый клиент!</b>`,
+        `👤 ${record.first_name || '?'} ${record.last_name || ''}`.trim(),
+        `📱 ${record.phone || 'телефон не указан'}`,
+      ].join('\n');
     }
 
-    // 2. Запись на урок (INSERT в таблицу bookings)
-    // Внимание: webhook присылает только ID, нам может не хватать названий.
-    // Для простоты пока шлем ID, в будущем можно докрутить запрос к базе.
+    // ── 2. ЗАПИСЬ НА УРОК ─────────────────────────────────────────────
     else if (table === 'bookings' && type === 'INSERT' && record.status === 'booked') {
-        // Мы знаем user_id и session_id. 
-        // В бесплатном варианте без лишних запросов просто оповещаем о факте.
-        message = `
-📝 <b>Новая запись на урок!</b>
-🆔 Бронь ID: <code>${record.id.split('-')[0]}...</code>
-👤 Клиент ID: <code>${record.user_id}</code>
-      `;
+      let clientName = `ID: ${record.user_id}`;
+      let sessionInfo = `ID: ${record.session_id}`;
+
+      if (supabase) {
+        const [{ data: profile }, { data: session }] = await Promise.all([
+          supabase.from('profiles').select('first_name, last_name, phone').eq('id', record.user_id).single(),
+          supabase.from('schedule_sessions').select('start_time, class_type:class_types(name)').eq('id', record.session_id).single(),
+        ]);
+
+        if (profile) {
+          clientName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() + (profile.phone ? ` (${profile.phone})` : '');
+        }
+        if (session) {
+          const date = new Date(session.start_time);
+          const dateStr = date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+          const timeStr = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+          const className = (session as any).class_type?.name || 'Занятие';
+          sessionInfo = `${className}, ${dateStr} в ${timeStr}`;
+        }
+      }
+
+      message = [
+        `📝 <b>Новая запись!</b>`,
+        `👤 ${clientName}`,
+        `🏋️ ${sessionInfo}`,
+      ].join('\n');
     }
 
-    // 3. Отмена записи клиентом (UPDATE bookings -> cancelled)
-    else if (table === 'bookings' && type === 'UPDATE' && record.status === 'cancelled' && old_record.status !== 'cancelled') {
-       message = `
-❌ <b>Запись отменена!</b>
-🆔 Бронь ID: <code>${record.id}</code>
-      `;
+    // ── 3. ОТМЕНА ЗАПИСИ (клиент удаляет бронь через DELETE) ──────────
+    else if (table === 'bookings' && type === 'DELETE') {
+      let clientName = `ID: ${record.user_id}`;
+      let sessionInfo = `ID: ${record.session_id}`;
+
+      if (supabase) {
+        const [{ data: profile }, { data: session }] = await Promise.all([
+          supabase.from('profiles').select('first_name, last_name, phone').eq('id', record.user_id).single(),
+          supabase.from('schedule_sessions').select('start_time, class_type:class_types(name)').eq('id', record.session_id).single(),
+        ]);
+
+        if (profile) {
+          clientName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() + (profile.phone ? ` (${profile.phone})` : '');
+        }
+        if (session) {
+          const date = new Date(session.start_time);
+          const dateStr = date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+          const timeStr = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+          const className = (session as any).class_type?.name || 'Занятие';
+          sessionInfo = `${className}, ${dateStr} в ${timeStr}`;
+        }
+      }
+
+      message = [
+        `❌ <b>Запись отменена</b>`,
+        `👤 ${clientName}`,
+        `🏋️ ${sessionInfo}`,
+      ].join('\n');
     }
 
-    // Если сообщение сформировано - отправляем
+    // ── 4. ВЫДАН АБОНЕМЕНТ (INSERT в user_subscriptions) ──────────────
+    else if (table === 'user_subscriptions' && type === 'INSERT') {
+      let clientName = `ID: ${record.user_id}`;
+      let planName = `ID: ${record.plan_id}`;
+
+      if (supabase) {
+        const [{ data: profile }, { data: plan }] = await Promise.all([
+          supabase.from('profiles').select('first_name, last_name, phone').eq('id', record.user_id).single(),
+          supabase.from('subscription_plans').select('name').eq('id', record.plan_id).single(),
+        ]);
+
+        if (profile) {
+          clientName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() + (profile.phone ? ` (${profile.phone})` : '');
+        }
+        if (plan) planName = plan.name;
+      }
+
+      message = [
+        `💳 <b>Новый абонемент!</b>`,
+        `👤 ${clientName}`,
+        `📦 ${planName}`,
+        `📅 до ${record.end_date || '?'}`,
+      ].join('\n');
+    }
+
     if (message) {
-      await sendTelegramMessage(message);
+      const sent = await sendTelegramMessage(message);
+      if (!sent) {
+        console.error('Failed to send Telegram message');
+        return res.status(500).send('Telegram send failed');
+      }
       return res.status(200).json({ success: true });
     }
 
@@ -69,17 +138,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function sendTelegramMessage(text: string) {
-  if (!TELEGRAM_TOKEN || !CHAT_ID) return;
-  
-  const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
-  await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: CHAT_ID,
-      text: text,
-      parse_mode: 'HTML' // Позволяет использовать жирный шрифт и код
-    })
-  });
+async function sendTelegramMessage(text: string): Promise<boolean> {
+  if (!TELEGRAM_TOKEN || !CHAT_ID) {
+    console.warn('Telegram credentials not configured');
+    return false;
+  }
+
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: CHAT_ID, text, parse_mode: 'HTML' })
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error('Telegram API error:', err);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('Telegram fetch error:', e);
+    return false;
+  }
 }
