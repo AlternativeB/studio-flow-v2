@@ -32,7 +32,8 @@ import { toast } from "sonner";
 export default function Schedule() {
   const queryClient = useQueryClient();
   const [weekOffset, setWeekOffset] = useState(0);
-  
+  const [filterCoachId, setFilterCoachId] = useState("all");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -240,10 +241,32 @@ export default function Schedule() {
         </div>
       </div>
 
+      {/* ФИЛЬТР ПО ТРЕНЕРАМ */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-muted-foreground">Тренер:</span>
+        <Select value={filterCoachId} onValueChange={setFilterCoachId}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Все тренеры" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все тренеры</SelectItem>
+            <SelectItem value="none">Без тренера</SelectItem>
+            {coaches.map((c: any) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
         {weekDays.map(day => {
-          const daySessions = sessions.filter((s: any) => isSameDay(parseISO(s.start_time), day));
+          const allDaySessions = sessions.filter((s: any) => isSameDay(parseISO(s.start_time), day));
+          const daySessions = filterCoachId === "all"
+            ? allDaySessions
+            : filterCoachId === "none"
+              ? allDaySessions.filter((s: any) => !s.coach_id)
+              : allDaySessions.filter((s: any) => s.coach_id === filterCoachId);
           const isToday = isSameDay(day, new Date());
 
           return (
