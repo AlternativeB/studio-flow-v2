@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Loader2, LogOut, Ticket, Calendar, MessageCircle, ChevronRight, Megaphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
+import { ru } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// --- КОНСТАНТЫ ---
-const ADMIN_PHONE = "77076724776"; // Укажите реальный номер
 
 const ClientHome = () => {
   const navigate = useNavigate();
@@ -43,7 +42,7 @@ const ClientHome = () => {
         .gte('end_date', today)
         .order('end_date', { ascending: true }); // Сортируем: сначала те, что раньше кончатся
 
-      // 3. Новости (берем больше, чтобы был смысл в скролле)
+      // 3. Новости
       const { data: news } = await supabase
         .from('news')
         .select('*')
@@ -51,12 +50,20 @@ const ClientHome = () => {
         .order('published_at', { ascending: false })
         .limit(10);
 
+      // 4. Телефон студии для WhatsApp
+      const { data: phoneRow } = await supabase
+        .from('studio_info')
+        .select('value')
+        .eq('key', 'phone')
+        .single();
+      const adminPhone = phoneRow?.value || '';
+
       // Ищем активный абонемент:
       // Либо безлимит (visits_total === null)
       // Либо есть остаток (visits_remaining > 0)
       const activeSub = subs?.find((s: any) => s.visits_total === null || s.visits_remaining > 0);
 
-      return { profile, subscriptions: subs || [], activeSub, news: news || [] };
+      return { profile, subscriptions: subs || [], activeSub, news: news || [], adminPhone };
     }
   });
 
@@ -66,7 +73,9 @@ const ClientHome = () => {
   };
 
   const openWhatsApp = () => {
-    window.open(`https://wa.me/${ADMIN_PHONE}`, '_blank');
+    const phone = clientData?.adminPhone;
+    if (!phone) return;
+    window.open(`https://wa.me/${phone.replace(/\D/g, '')}`, '_blank');
   };
 
   if (isLoading) return <div className="flex justify-center mt-20"><Loader2 className="animate-spin text-blue-600" /></div>;
@@ -183,7 +192,7 @@ const ClientHome = () => {
             <DialogHeader>
                 <DialogTitle className="text-lg font-bold pr-6 leading-tight">{selectedNews?.title}</DialogTitle>
                 <DialogDescription>
-                    {selectedNews?.published_at && format(parseISO(selectedNews.published_at), 'd MMMM yyyy', { locale: (window as any).dateFnsLocale })}
+                    {selectedNews?.published_at && format(parseISO(selectedNews.published_at), 'd MMMM yyyy', { locale: ru })}
                 </DialogDescription>
             </DialogHeader>
             <ScrollArea className="max-h-[60vh] pr-2">

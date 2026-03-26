@@ -36,6 +36,7 @@ const ClientSchedule = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedClassInfo, setSelectedClassInfo] = useState<any>(null); // Для модалки инфо
+  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
 
   // Вычисляем дни для текущей недели
   const weekStart = startOfWeek(addWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
@@ -54,9 +55,9 @@ const ClientSchedule = () => {
     queryKey: ['cancellation_limit'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('app_settings').select('cancellation_window_minutes').single();
+        const { data, error } = await supabase.from('studio_info').select('value').eq('key', 'cancellation_minutes').single();
         if (error || !data) return 60;
-        return data.cancellation_window_minutes;
+        return parseInt(data.value) || 60;
       } catch (e) {
         return 60;
       }
@@ -142,11 +143,15 @@ const ClientSchedule = () => {
       // visits_remaining пересчитывается триггером on_booking_change_recalc на бэкенде
     },
     onSuccess: () => {
+      setPendingSessionId(null);
       toast.success("Вы успешно записаны!");
       queryClient.invalidateQueries({ queryKey: ['client_schedule'] });
       queryClient.invalidateQueries({ queryKey: ['portal_home_data'] });
     },
-    onError: (error: any) => toast.error(error.message || "Ошибка записи")
+    onError: (error: any) => {
+      setPendingSessionId(null);
+      toast.error(error.message || "Ошибка записи");
+    }
   });
 
   // 3. Отмена записи
@@ -173,6 +178,7 @@ const ClientSchedule = () => {
   });
 
   const handleBook = (sessionId: string) => {
+    setPendingSessionId(sessionId);
     bookMutation.mutate(sessionId);
   };
 
@@ -310,12 +316,12 @@ const ClientSchedule = () => {
                                 Заполнено
                                 </Button>
                             ) : (
-                                <Button 
-                                onClick={() => handleBook(session.id)} 
-                                disabled={bookMutation.isPending}
+                                <Button
+                                onClick={() => handleBook(session.id)}
+                                disabled={pendingSessionId === session.id}
                                 className="h-8 text-xs shadow-sm rounded-lg px-4"
                                 >
-                                {bookMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Записаться"}
+                                {pendingSessionId === session.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Записаться"}
                                 </Button>
                             )}
                         </div>
