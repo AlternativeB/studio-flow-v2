@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ClassTypes() {
@@ -28,6 +28,11 @@ export default function ClassTypes() {
   const [formData, setFormData] = useState({ name: "", description: "", duration: "60", color: "#3b82f6" });
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Фильтры
+  const [filterName, setFilterName] = useState("");
+  const [filterMinDuration, setFilterMinDuration] = useState("");
+  const [filterMaxDuration, setFilterMaxDuration] = useState("");
 
   const { data: classTypes = [], isLoading } = useQuery({
     queryKey: ['class_types'],
@@ -112,6 +117,15 @@ export default function ClassTypes() {
     setIsOpen(true);
   };
 
+  const filteredTypes = classTypes.filter((type: any) => {
+    if (filterName && !type.name.toLowerCase().includes(filterName.toLowerCase())) return false;
+    if (filterMinDuration && type.duration_min < Number(filterMinDuration)) return false;
+    if (filterMaxDuration && type.duration_min > Number(filterMaxDuration)) return false;
+    return true;
+  });
+
+  const hasActiveFilters = filterName || filterMinDuration || filterMaxDuration;
+
   return (
     <div className="space-y-6 animate-in fade-in">
       <div className="flex justify-between items-center">
@@ -125,6 +139,38 @@ export default function ClassTypes() {
         </Button>
       </div>
 
+      {/* ФИЛЬТРЫ */}
+      <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Фильтры</span>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => {
+              setFilterName(""); setFilterMinDuration(""); setFilterMaxDuration("");
+            }}>
+              Сбросить
+            </Button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Поиск по названию"
+              value={filterName}
+              onChange={e => setFilterName(e.target.value)}
+              className="h-8 text-sm pl-9"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Input placeholder="Длит. от (мин)" type="number" value={filterMinDuration} onChange={e => setFilterMinDuration(e.target.value)} className="h-8 text-sm" />
+            <Input placeholder="до" type="number" value={filterMaxDuration} onChange={e => setFilterMaxDuration(e.target.value)} className="h-8 text-sm" />
+          </div>
+        </div>
+        {hasActiveFilters && (
+          <p className="text-xs text-muted-foreground">Найдено: {filteredTypes.length} из {classTypes.length}</p>
+        )}
+      </div>
+
       <div className="border rounded-lg bg-card shadow-sm">
         <Table>
           <TableHeader>
@@ -136,7 +182,14 @@ export default function ClassTypes() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {classTypes.map((type: any) => (
+            {filteredTypes.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  Нет типов занятий по выбранным фильтрам
+                </TableCell>
+              </TableRow>
+            )}
+            {filteredTypes.map((type: any) => (
               <TableRow key={type.id}>
                 <TableCell className="font-medium flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full" style={{ backgroundColor: type.color }} />
