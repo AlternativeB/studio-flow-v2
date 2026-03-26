@@ -75,10 +75,10 @@ const ClientSchedule = () => {
       const { data, error } = await supabase
         .from('schedule_sessions')
         .select(`
-            id, start_time, capacity,
-            class_type:class_types(name, color, description), 
+            id, start_time, end_time, capacity,
+            class_type:class_types(name, color, description),
             coach:coaches(name),
-            my_booking:bookings(id, user_id, subscription_id), 
+            my_booking:bookings(id, user_id, subscription_id),
             all_bookings:bookings(count)
         `)
         .gte('start_time', start)
@@ -268,8 +268,11 @@ const ClientSchedule = () => {
                       <div className="p-3 flex-1 flex flex-row items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                                <div className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-gray-100 text-primary font-bold text-xs">
-                                    <Clock className="w-3 h-3 mr-1" />{format(startDate, 'HH:mm')}
+                                <div className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-gray-100 text-primary font-bold text-xs whitespace-nowrap tabular-nums">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    {format(startDate, 'HH:mm')}
+                                    {session.end_time && <span className="text-gray-400 font-normal mx-0.5">–</span>}
+                                    {session.end_time && format(parseISO(session.end_time), 'HH:mm')}
                                 </div>
                                 <div className="flex items-center gap-1">
                                     {!isFull ? (
