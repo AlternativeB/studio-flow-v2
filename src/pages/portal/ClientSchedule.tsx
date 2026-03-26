@@ -139,10 +139,7 @@ const ClientSchedule = () => {
           status: 'booked'
       });
       if (bookError) throw bookError;
-
-      await supabase.from('user_subscriptions')
-        .update({ visits_remaining: activeSub.visits_remaining - 1 })
-        .eq('id', activeSub.id);
+      // visits_remaining пересчитывается триггером on_booking_change_recalc на бэкенде
     },
     onSuccess: () => {
       toast.success("Вы успешно записаны!");
@@ -165,21 +162,7 @@ const ClientSchedule = () => {
 
         const { error: delError } = await supabase.from('bookings').delete().eq('id', bookingId);
         if (delError) throw delError;
-
-        if (subscriptionId) {
-            const { data: sub, error: subErr } = await supabase
-                .from('user_subscriptions')
-                .select('visits_remaining')
-                .eq('id', subscriptionId)
-                .single();
-            
-            if (!subErr && sub) {
-                await supabase
-                    .from('user_subscriptions')
-                    .update({ visits_remaining: sub.visits_remaining + 1 })
-                    .eq('id', subscriptionId);
-            }
-        }
+        // visits_remaining возвращается триггером on_booking_change_recalc на бэкенде
     },
     onSuccess: () => {
         toast.success("Запись отменена, занятие возвращено");

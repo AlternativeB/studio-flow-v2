@@ -64,8 +64,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).send('No notification needed');
 
   } catch (error: any) {
-    console.error('Error:', error);
-    return res.status(500).send(error.message);
+    console.error('Webhook error:', error);
+    return res.status(500).send('Internal Server Error');
   }
 }
 
