@@ -21,7 +21,7 @@ export const ClientLayout = ({ children }: ClientLayoutProps) => {
     <div className="min-h-screen bg-gray-50 pb-24 md:pb-0">
       {/* Основной контент */}
       <main className="max-w-md mx-auto min-h-screen bg-white shadow-xl overflow-hidden relative">
-        <div className="h-full overflow-y-auto px-4 pt-6 pb-20">
+        <div className="h-full overflow-y-auto pb-20">
            {children || <Outlet />}
         </div>
       </main>

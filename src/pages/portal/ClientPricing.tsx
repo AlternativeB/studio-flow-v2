@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, ChevronLeft, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ClientLayout } from "@/components/layout/ClientLayout";
+import { useNavigate } from "react-router-dom";
 
 const ClientPricing = () => {
+  const navigate = useNavigate();
+
   const { data: plans, isLoading } = useQuery({
     queryKey: ["public_plans"],
     queryFn: async () => {
@@ -30,40 +33,73 @@ const ClientPricing = () => {
 
   return (
     <ClientLayout>
-      <div className="space-y-4 pb-20 px-4">
-        <h1 className="text-xl font-bold pt-4">Тарифы</h1>
-        {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary"/></div> : 
-          plans?.map((plan: any) => (
-            <div key={plan.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-4">
-              <h3 className="text-lg font-bold">{plan.name}</h3>
-              <div className="text-3xl font-extrabold text-primary my-2">{plan.price.toLocaleString()} ₸</div>
-              
-              {/* Описание фич из поля description */}
-              <div className="space-y-2 mb-6">
-                  {plan.description?.split('\n').map((line: string, i: number) => (
-                      <div key={i} className="flex items-start text-sm text-gray-600">
-                          <Check className="h-4 w-4 mr-2 text-green-600 mt-0.5 shrink-0"/>
-                          <span>{line.replace(/^-/, '')}</span>
-                      </div>
-                  ))}
-                  <div className="flex items-center text-sm text-gray-600 font-medium pt-2 border-t mt-2">
-                      <Check className="h-4 w-4 mr-2 text-green-600"/>
-                      {plan.visits_count ? `${plan.visits_count} занятий` : "Безлимитное посещение"}
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                      <Check className="h-4 w-4 mr-2 text-green-600"/>
-                      Срок {plan.duration_days} дней
-                  </div>
-              </div>
+      <div className="pb-24">
+        {/* Header с кнопкой назад */}
+        <div className="flex items-center gap-2 pt-4 mb-4">
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navigate(-1)}>
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-xl font-bold">Тарифы</h1>
+        </div>
 
-              <Button className="w-full rounded-xl h-12" onClick={() => buyViaWhatsApp(plan.name)} disabled={!adminPhone}>
-                  Купить через WhatsApp
-              </Button>
-            </div>
-          ))
-        }
+        {isLoading ? (
+          <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary" /></div>
+        ) : (
+          <div className="space-y-3">
+            {plans?.map((plan: any) => (
+              <div key={plan.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                {/* Верхняя часть */}
+                <div className="flex items-start justify-between p-4 pb-3">
+                  <div>
+                    <h3 className="text-base font-bold leading-tight">{plan.name}</h3>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className="text-2xl font-extrabold text-primary">{plan.price.toLocaleString()}</span>
+                      <span className="text-sm font-medium text-primary">₸</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 ml-3">
+                    <div className="text-lg font-bold text-gray-800">
+                      {plan.visits_count ? plan.visits_count : "∞"}
+                    </div>
+                    <div className="text-xs text-gray-400">занятий</div>
+                  </div>
+                </div>
+
+                {/* Разделитель */}
+                <div className="mx-4 border-t border-gray-100" />
+
+                {/* Детали */}
+                <div className="px-4 py-3 space-y-1.5">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Check className="h-3.5 w-3.5 mr-2 text-green-500 shrink-0" />
+                    Срок действия {plan.duration_days} дней
+                  </div>
+                  {plan.description?.split('\n').filter(Boolean).map((line: string, i: number) => (
+                    <div key={i} className="flex items-start text-sm text-gray-600">
+                      <Check className="h-3.5 w-3.5 mr-2 text-green-500 mt-0.5 shrink-0" />
+                      <span>{line.replace(/^-\s*/, '')}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Кнопка */}
+                <div className="px-4 pb-4">
+                  <Button
+                    className="w-full rounded-xl h-11 gap-2"
+                    onClick={() => buyViaWhatsApp(plan.name)}
+                    disabled={!adminPhone}
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Купить через WhatsApp
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </ClientLayout>
   );
 };
+
 export default ClientPricing;
