@@ -22,12 +22,14 @@ const ClientLogin = () => {
 
   const handleAuth = async (type: "login" | "register") => {
     if (!phone) return toast.error("Введите телефон");
+    if (!password) return toast.error("Введите пароль");
+    if (type === "register" && password.length < 6) return toast.error("Пароль должен быть не менее 6 символов");
     if (type === "register" && !firstName) return toast.error("Введите имя");
-    
+
     setIsLoading(true);
     const cleanPhone = phone.replace(/\D/g, '');
     const email = getEmail(cleanPhone);
-    const pwd = password || "default-password"; // Лучше заставлять вводить пароль, но для начала ок
+    const pwd = password;
 
     try {
       if (type === "register") {
