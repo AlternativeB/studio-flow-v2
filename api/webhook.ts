@@ -28,10 +28,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
 
     // ── 1. НОВЫЙ КЛИЕНТ ──────────────────────────────────────────────
-    if (table === 'profiles' && type === 'INSERT' && record.role === 'client') {
+    // Триггер стреляет и на INSERT и на UPDATE.
+    // Имя появляется только в UPDATE (регистрация завершается в два шага).
+    // Поэтому слушаем UPDATE когда first_name только что стал непустым.
+    const isNewClientInsert = table === 'profiles' && type === 'INSERT' && record.role === 'client' && record.first_name;
+    const isNewClientUpdate = table === 'profiles' && type === 'UPDATE' && record.role === 'client' && record.first_name && !old_record?.first_name;
+
+    if (isNewClientInsert || isNewClientUpdate) {
       message = [
         `🎉 <b>Новый клиент!</b>`,
-        `👤 ${record.first_name || '?'} ${record.last_name || ''}`.trim(),
+        `👤 ${record.first_name} ${record.last_name || ''}`.trim(),
         `📱 ${record.phone || 'телефон не указан'}`,
       ].join('\n');
     }
