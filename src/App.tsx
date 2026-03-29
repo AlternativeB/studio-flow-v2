@@ -30,8 +30,8 @@ import Aggregators from "./pages/Aggregators";
 import News from "./pages/News";
 import NotFound from "./pages/NotFound";
 
-// ИСПРАВЛЕНИЕ ЗДЕСЬ: Добавили "/admin" в путь
 import AllUsers from "./pages/admin/AllUsers";
+import AdminCheckIn from "./pages/admin/AdminCheckIn";
 import OwnerPayroll from "./pages/OwnerPayroll";
 import TrainerLogin from "./pages/trainer/TrainerLogin";
 import TrainerHome from "./pages/trainer/TrainerHome";
@@ -199,6 +199,7 @@ const App = () => (
             <Route path="/admin/plans" element={<SubscriptionPlans />} />
             <Route path="/class-types" element={<ClassTypes />} />
             <Route path="/admin/users" element={<AllUsers />} />
+            <Route path="/admin/checkin" element={<AdminCheckIn />} />
             <Route path="/owner/payroll" element={<OwnerPayroll />} />
           </Route>
 

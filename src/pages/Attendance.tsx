@@ -276,13 +276,13 @@ const Attendance = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Отчет по посещаемости</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-wrap justify-between items-start gap-3">
+        <h1 className="text-2xl md:text-3xl font-bold">Посещаемость</h1>
+        <div className="flex flex-wrap gap-2">
             {/* --- ДИАЛОГ РУЧНОЙ ЗАПИСИ --- */}
             <Dialog open={isBookDialogOpen} onOpenChange={setIsBookDialogOpen}>
                 <DialogTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700"><Plus className="mr-2 h-4 w-4" /> Записать клиента</Button>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-sm"><Plus className="mr-2 h-4 w-4" /> Записать</Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>
@@ -348,8 +348,8 @@ const Attendance = () => {
                 </DialogContent>
             </Dialog>
 
-            <Button variant="outline" onClick={exportToExcel} disabled={reportData.length === 0}>
-                <Download className="mr-2 h-4 w-4" /> Скачать Excel
+            <Button variant="outline" onClick={exportToExcel} disabled={reportData.length === 0} className="text-sm">
+                <Download className="mr-2 h-4 w-4" /> Excel
             </Button>
         </div>
       </div>

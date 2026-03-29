@@ -124,41 +124,41 @@ export default function ClientDetail() {
   return (
     <div className="space-y-6 animate-in fade-in">
       {/* ИСПРАВЛЕНИЕ: Кнопка назад ведет на /clients, а не /admin/clients */}
-      <Button variant="ghost" onClick={() => navigate('/clients')} className="mb-4">
+      <Button variant="ghost" onClick={() => navigate('/clients')} className="mb-2 -ml-2">
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Назад к списку
+        Назад
       </Button>
 
-      <div className="grid gap-6 md:grid-cols-[1fr_300px]">
-        {/* ... остальной код ... */}
-
-        <div className="space-y-6">
+      <div className="grid gap-4 md:gap-6 md:grid-cols-[1fr_300px]">
+        <div className="space-y-4 md:space-y-6">
           {/* Шапка профиля */}
           <Card>
-            <CardContent className="p-6 flex items-start justify-between">
-              <div className="flex gap-4">
-                <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
-                  {client?.first_name?.[0]}{client?.last_name?.[0]}
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold">{client?.first_name} {client?.last_name}</h1>
-                  <div className="flex flex-col gap-1 text-muted-foreground mt-2">
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" /> {client?.phone}
-                    </div>
-                    {client?.email && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" /> {client?.email}
+            <CardContent className="p-4 md:p-6">
+              <div className="flex flex-wrap items-start gap-4 justify-between">
+                <div className="flex gap-3 min-w-0">
+                  <div className="h-14 w-14 md:h-20 md:w-20 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-xl md:text-2xl font-bold text-primary">
+                    {client?.first_name?.[0]}{client?.last_name?.[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <h1 className="text-lg md:text-2xl font-bold leading-tight">{client?.first_name} {client?.last_name}</h1>
+                    <div className="flex flex-col gap-1 text-muted-foreground mt-1 text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 shrink-0" /> {client?.phone}
                       </div>
-                    )}
+                      {client?.email && (
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate text-xs">{client?.email}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
               <Dialog open={isSellModalOpen} onOpenChange={setIsSellModalOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button size="sm" className="shrink-0">
                     <CreditCard className="mr-2 h-4 w-4" />
-                    Продать абонемент
+                    Продать
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -191,6 +191,7 @@ export default function ClientDetail() {
                   </div>
                 </DialogContent>
               </Dialog>
+              </div>
             </CardContent>
           </Card>
 

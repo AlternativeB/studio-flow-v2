@@ -37,12 +37,8 @@ const Trials = () => {
       
       if (error) throw error;
 
-      // ИСПРАВЛЕНИЕ: Раньше здесь был фильтр, который скрывал клиентов с абонементами.
-      // Я его убрал, чтобы клиенты не пропадали после покупки.
-      // Если нужно вернуть фильтр, раскомментируй строку ниже:
-      // const trials = data.filter((c: any) => !c.subscriptions || c.subscriptions.length === 0);
-      
-      return data; // Возвращаем всех клиентов
+      // Показываем только тех, у кого НЕТ абонементов — это и есть пробные/лиды
+      return data.filter((c: any) => !c.subscriptions || c.subscriptions.length === 0);
     }
   });
 
