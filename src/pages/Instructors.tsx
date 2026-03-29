@@ -19,7 +19,7 @@ const Instructors = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCoach, setEditingCoach] = useState<any>(null);
 
-  const emptyForm = { name: "", specialization: "", phone: "", photo_url: "", bio: "", is_active: true };
+  const emptyForm = { name: "", specialization: "", phone: "", photo_url: "", bio: "", is_active: true, rate_per_client: "" };
   const [formData, setFormData] = useState(emptyForm);
   const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>([]);
 
@@ -57,7 +57,8 @@ const Instructors = () => {
         phone: formData.phone,
         photo_url: formData.photo_url,
         bio: formData.bio,
-        is_active: formData.is_active
+        is_active: formData.is_active,
+        rate_per_client: parseInt(formData.rate_per_client) || 0
       }]).select().single();
 
       if (error) throw error;
@@ -87,7 +88,8 @@ const Instructors = () => {
         phone: formData.phone,
         photo_url: formData.photo_url,
         bio: formData.bio,
-        is_active: formData.is_active
+        is_active: formData.is_active,
+        rate_per_client: parseInt(formData.rate_per_client) || 0
       }).eq('id', editingCoach.id);
 
       if (error) throw error;
@@ -139,7 +141,8 @@ const Instructors = () => {
       phone: coach.phone || "",
       photo_url: coach.photo_url || "",
       bio: coach.bio || "",
-      is_active: coach.is_active ?? true
+      is_active: coach.is_active ?? true,
+      rate_per_client: coach.rate_per_client != null ? String(coach.rate_per_client) : ""
     });
     const existingTypes = (coach.coach_class_types || []).map((cct: any) => cct.class_type_id);
     setSelectedClassTypes(existingTypes);
@@ -280,6 +283,17 @@ const Instructors = () => {
                 onChange={e => setFormData({...formData, bio: e.target.value})}
                 placeholder="Краткое описание..."
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Ставка за клиента (₸)</Label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={formData.rate_per_client || ""}
+                onChange={e => setFormData({...formData, rate_per_client: e.target.value})}
+              />
+              <p className="text-xs text-muted-foreground">Оплата тренеру за каждого клиента на занятии</p>
             </div>
 
             {/* Специализация — мультиселект из class_types */}

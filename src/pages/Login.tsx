@@ -49,13 +49,15 @@ const Login = () => {
           .eq('id', user.id)
           .single();
 
-        if (profileError || profile?.role !== 'admin') {
+        if (profileError || !['admin', 'owner'].includes(profile?.role)) {
           console.error("Ошибка прав:", profileError);
           toast.error("Доступ запрещен", { description: "У этого аккаунта нет прав администратора" });
           await supabase.auth.signOut(); // Выкидываем сразу
         } else {
-          toast.success("Добро пожаловать, Босс!");
-          navigate("/"); // Переход в админ-панель
+          if (['admin', 'owner'].includes(profile?.role)) {
+            toast.success("Добро пожаловать!");
+            navigate("/dashboard");
+          }
         }
     }
     setLoading(false);

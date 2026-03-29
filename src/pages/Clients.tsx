@@ -186,7 +186,45 @@ export default function Clients() {
         </Select>
       </div>
 
-      <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
+      {/* MOBILE CARDS */}
+      <div className="md:hidden space-y-2">
+        {isLoading ? (
+          <div className="text-center py-8 text-muted-foreground text-sm">Загрузка...</div>
+        ) : filteredClients.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground text-sm">Клиенты не найдены</div>
+        ) : filteredClients.map((client: any) => {
+          const status = getClientStatus(client);
+          return (
+            <div
+              key={client.id}
+              className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm active:scale-[0.99] transition-all"
+              onClick={() => navigate(`/clients/${client.id}`)}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-base">{client.first_name} {client.last_name}</p>
+                  <p className="text-sm text-gray-500">{client.phone}</p>
+                </div>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full shrink-0 ml-2 ${
+                  status === 'active' ? 'bg-green-100 text-green-700' :
+                  status === 'expired' ? 'bg-red-100 text-red-700' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  {status === 'active' ? 'Активен' : status === 'expired' ? 'Истёк' : 'Нет'}
+                </span>
+              </div>
+              {client.lastSub && (
+                <div className="mt-2 text-xs text-gray-400 flex items-center justify-between">
+                  <span>До: {format(parseISO(client.lastSub.end_date), 'dd.MM.yyyy')}</span>
+                  {client.balance != null && <span>{client.balance} ₸</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden md:block border rounded-lg bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -273,6 +311,7 @@ export default function Clients() {
             )}
           </TableBody>
         </Table>
+      </div>
       </div>
     </div>
   );

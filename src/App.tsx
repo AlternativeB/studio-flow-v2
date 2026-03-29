@@ -31,7 +31,12 @@ import News from "./pages/News";
 import NotFound from "./pages/NotFound";
 
 // ИСПРАВЛЕНИЕ ЗДЕСЬ: Добавили "/admin" в путь
-import AllUsers from "./pages/admin/AllUsers"; 
+import AllUsers from "./pages/admin/AllUsers";
+import OwnerPayroll from "./pages/OwnerPayroll";
+import TrainerLogin from "./pages/trainer/TrainerLogin";
+import TrainerHome from "./pages/trainer/TrainerHome";
+import TrainerSchedule from "./pages/trainer/TrainerSchedule";
+import { TrainerLayout } from "./components/layout/TrainerLayout";
 
 // === Pages (Клиентский портал) ===
 import ClientLogin from "./pages/portal/ClientLogin";
@@ -86,7 +91,7 @@ const ProtectedRoute = ({ children, checkAdmin = false }: { children?: React.Rea
         console.error("Ошибка проверки роли (RLS или рекурсия):", error);
         setIsAdmin(false);
       } else {
-        setIsAdmin(data?.role === 'admin');
+        setIsAdmin(['admin', 'owner'].includes(data?.role));
       }
     } catch (err) {
       console.error("Критическая ошибка:", err);
@@ -130,6 +135,41 @@ const ProtectedRoute = ({ children, checkAdmin = false }: { children?: React.Rea
   return children ? <>{children}</> : <Outlet />;
 };
 
+// === TRAINER ROUTE ===
+const TrainerRoute = ({ children }: { children?: React.ReactNode }) => {
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [isTrainer, setIsTrainer] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle()
+          .then(({ data }) => setIsTrainer(data?.role === 'trainer'));
+      } else {
+        setIsTrainer(false);
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session?.user) {
+        supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle()
+          .then(({ data }) => setIsTrainer(data?.role === 'trainer'));
+      } else {
+        setIsTrainer(false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (session === undefined || isTrainer === null) {
+    return <div className="h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+  if (session === null) return <Navigate to="/trainer/login" replace />;
+  if (!isTrainer) return <Navigate to="/trainer/login" replace />;
+  return children ? <>{children}</> : <Outlet />;
+};
+
 // === ОСНОВНОЕ ПРИЛОЖЕНИЕ ===
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -159,6 +199,14 @@ const App = () => (
             <Route path="/admin/plans" element={<SubscriptionPlans />} />
             <Route path="/class-types" element={<ClassTypes />} />
             <Route path="/admin/users" element={<AllUsers />} />
+            <Route path="/owner/payroll" element={<OwnerPayroll />} />
+          </Route>
+
+          {/* === ТРЕНЕРСКИЙ ПОРТАЛ === */}
+          <Route path="/trainer/login" element={<TrainerLogin />} />
+          <Route element={<TrainerRoute><TrainerLayout /></TrainerRoute>}>
+            <Route path="/trainer" element={<TrainerHome />} />
+            <Route path="/trainer/schedule" element={<TrainerSchedule />} />
           </Route>
 
           {/* === КЛИЕНТСКИЙ ПОРТАЛ === */}

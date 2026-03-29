@@ -433,7 +433,38 @@ const Subscriptions = () => {
         )}
       </div>
 
-      <div className="overflow-x-auto bg-white rounded-lg border shadow-sm">
+      {/* MOBILE CARDS */}
+      <div className="md:hidden space-y-3">
+        {filteredSubs.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground text-sm">Абонементов не найдено</div>
+        ) : filteredSubs.map((sub: any) => {
+          const status = getSubscriptionStatus(sub);
+          return (
+            <div key={sub.id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="font-bold">{sub.user?.first_name} {sub.user?.last_name}</p>
+                  <p className="text-xs text-gray-400">{sub.user?.phone}</p>
+                </div>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full border-0 ${status.color}`}>{status.label}</span>
+              </div>
+              <div className="text-sm font-medium text-gray-700 mb-2">{sub.plan?.name}</div>
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>До: {sub.end_date ? format(parseISO(sub.end_date), 'dd.MM.yyyy') : '—'}</span>
+                <span className={sub.visits_remaining === 0 ? "text-gray-400" : "text-green-700 font-semibold"}>
+                  {sub.visits_remaining ?? "∞"} / {sub.visits_total ?? "∞"} занятий
+                </span>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => handleEdit(sub)}>Изменить</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-xs text-red-400" onClick={() => deleteMutation.mutate(sub.id)}>Удалить</Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto bg-white rounded-lg border shadow-sm">
         <DataTable columns={columns} data={filteredSubs} emptyMessage="Абонементов не найдено" />
       </div>
 

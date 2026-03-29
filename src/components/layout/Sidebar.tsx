@@ -1,27 +1,39 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { 
-  Home, 
-  Users, 
-  Calendar, 
-  CreditCard, 
-  ClipboardCheck, 
-  UserCog, 
-  Settings, 
-  LogOut, 
+import {
+  Home,
+  Users,
+  Calendar,
+  CreditCard,
+  ClipboardCheck,
+  UserCog,
+  Settings,
+  LogOut,
   Megaphone,
   Percent,
   Globe,
   Tags,
   Dumbbell,
-  ShieldCheck // Иконка для раздела "Все пользователи"
+  ShieldCheck, // Иконка для раздела "Все пользователи"
+  DollarSign
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 
 // ВАЖНО: Используем "export const", чтобы соответствовать import { Sidebar } в AdminLayout
 export const Sidebar = () => {
   const location = useLocation();
+
+  const { data: currentUserRole } = useQuery({
+    queryKey: ['current_user_role'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      return data?.role;
+    }
+  });
 
   const navigation = [
     { name: "Главная", href: "/dashboard", icon: Home },
@@ -36,6 +48,7 @@ export const Sidebar = () => {
     { name: "Пробные", href: "/trials", icon: Percent },
     { name: "Агрегаторы", href: "/aggregators", icon: Globe },
     { name: "Все пользователи", href: "/admin/users", icon: ShieldCheck },
+    ...(currentUserRole === 'owner' ? [{ name: "Расчёт зарплаты", href: "/owner/payroll", icon: DollarSign }] : []),
     { name: "Настройки", href: "/settings", icon: Settings },
   ];
 
