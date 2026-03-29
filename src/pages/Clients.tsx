@@ -312,7 +312,6 @@ export default function Clients() {
           </TableBody>
         </Table>
       </div>
-      </div>
     </div>
   );
 }
