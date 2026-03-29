@@ -50,7 +50,8 @@ export default function Clients() {
             last_sub:user_subscriptions(
                 end_date,
                 is_active,
-                visits_remaining
+                visits_remaining,
+                visits_total
             )
         `)
         .eq('role', 'client')
@@ -216,7 +217,13 @@ export default function Clients() {
               {client.lastSub && (
                 <div className="mt-2 text-xs text-gray-400 flex items-center justify-between">
                   <span>До: {format(parseISO(client.lastSub.end_date), 'dd.MM.yyyy')}</span>
-                  {client.balance != null && <span>{client.balance} ₸</span>}
+                  {client.lastSub.visits_total != null && (
+                    <span className={`font-semibold ${
+                      status === 'active' ? 'text-green-600' : 'text-gray-400'
+                    }`}>
+                      {client.lastSub.visits_remaining} / {client.lastSub.visits_total} зан.
+                    </span>
+                  )}
                 </div>
               )}
             </div>
