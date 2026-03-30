@@ -30,7 +30,7 @@ const TrainerHome = () => {
       // Sessions this month
       const { data: monthSessions } = await supabase
         .from('schedule_sessions')
-        .select('id, start_time, end_time, capacity, class_type:class_types(name, color), bookings(count)')
+        .select('id, start_time, end_time, capacity, class_type:class_types(name, color), bookings(id, status, count)')
         .eq('coach_id', coach.id)
         .gte('start_time', monthStart)
         .lte('start_time', monthEnd)
@@ -41,13 +41,15 @@ const TrainerHome = () => {
       const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
       const { data: todaySessions } = await supabase
         .from('schedule_sessions')
-        .select('id, start_time, end_time, capacity, class_type:class_types(name, color), bookings(count)')
+        .select('id, start_time, end_time, capacity, class_type:class_types(name, color), bookings(id, status, count)')
         .eq('coach_id', coach.id)
         .gte('start_time', todayStart.toISOString())
         .lte('start_time', todayEnd.toISOString())
         .order('start_time');
 
-      const totalClients = (monthSessions || []).reduce((sum: number, s: any) => sum + (s.bookings?.[0]?.count || 0), 0);
+      // Only attended/completed count for payroll
+      const totalClients = (monthSessions || []).reduce((sum: number, s: any) =>
+        sum + (s.bookings || []).filter((b: any) => b.status === 'attended' || b.status === 'completed').length, 0);
       const totalSessions = (monthSessions || []).length;
       const payment = totalClients * (coach.rate_per_client || 0);
 

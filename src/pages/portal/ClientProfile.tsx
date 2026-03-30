@@ -41,7 +41,7 @@ const ClientProfile = () => {
         .select('*, plan:subscription_plans(name)')
         .eq('user_id', client.id)
         .eq('is_active', true)
-        .gte('end_date', new Date().toISOString().split('T')[0]); // Только действующие
+        .or('end_date.is.null,end_date.gte.' + new Date().toISOString().split('T')[0]); // Включаем неактивированные
       return data || [];
     },
     enabled: !!client?.id

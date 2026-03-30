@@ -126,8 +126,8 @@ const ClientSchedule = () => {
         .eq('user_id', user.id)
         .eq('is_active', true)
         .gte('visits_remaining', 1)
-        .gte('end_date', todayStr)
-        .order('end_date', { ascending: true })
+        .or('end_date.is.null,end_date.gte.' + todayStr)
+        .order('end_date', { ascending: true, nullsFirst: false })
         .limit(1);
 
       if (!subs || subs.length === 0) throw new Error("Нет активного абонемента или закончились занятия");

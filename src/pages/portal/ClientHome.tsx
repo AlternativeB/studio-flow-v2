@@ -39,8 +39,8 @@ const ClientHome = () => {
         .select('*, plan:subscription_plans(name)')
         .eq('user_id', profile.id) 
         .eq('is_active', true)
-        .gte('end_date', today)
-        .order('end_date', { ascending: true }); // Сортируем: сначала те, что раньше кончатся
+        .or('end_date.is.null,end_date.gte.' + today)
+        .order('end_date', { ascending: true, nullsFirst: false }); // Сортируем: сначала те, что раньше кончатся
 
       // 3. Новости
       const { data: news } = await supabase
@@ -126,8 +126,11 @@ const ClientHome = () => {
                         <div className="text-right">
                             <p className="text-blue-200 text-xs mb-1">До</p>
                             <p className="text-lg font-medium">
-                                {activeSub.end_date ? format(parseISO(activeSub.end_date), 'dd.MM.yyyy') : "∞"}
+                                {activeSub.end_date ? format(parseISO(activeSub.end_date), 'dd.MM.yyyy') : "—"}
                             </p>
+                            {!activeSub.end_date && (
+                                <p className="text-blue-300 text-xs">не активирован</p>
+                            )}
                         </div>
                     </div>
                 </div>

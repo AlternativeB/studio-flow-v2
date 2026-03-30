@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, User, Phone, Mail, Calendar, CreditCard, History, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format, addDays, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 
 export default function ClientDetail() {
@@ -91,17 +91,15 @@ export default function ClientDetail() {
       if (!plan) throw new Error("План не найден");
 
       const startDate = new Date();
-      const endDate = addDays(startDate, plan.duration_days);
 
-      // --- ИСПРАВЛЕНИЕ: Добавлен activation_date ---
       const { error } = await supabase.from('user_subscriptions').insert({
         user_id: id,
         plan_id: plan.id,
         visits_remaining: plan.visits_count,
         visits_total: plan.visits_count,
-        activation_date: format(startDate, 'yyyy-MM-dd'), // Теперь это поле тоже нужно
         start_date: format(startDate, 'yyyy-MM-dd'),
-        end_date: format(endDate, 'yyyy-MM-dd'),
+        activation_date: null,
+        end_date: null,
         is_active: true
       });
 
@@ -254,7 +252,7 @@ export default function ClientDetail() {
                             {sub.is_active ? 'Активен' : 'Завершен'}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            до {format(new Date(sub.end_date), 'dd.MM.yyyy')}
+                            {sub.end_date ? `до ${format(parseISO(sub.end_date), 'dd.MM.yyyy')}` : 'не активирован'}
                           </div>
                         </div>
                       </div>

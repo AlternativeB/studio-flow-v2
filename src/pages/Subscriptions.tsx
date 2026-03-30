@@ -98,19 +98,17 @@ const Subscriptions = () => {
       const selectedPlan = plans.find((p: any) => p.id === sellForm.plan_id);
       if (!selectedPlan) throw new Error("Тариф не найден");
 
-      // Логика дат
-      const activationDate = parseISO(sellForm.activation_date); // Дата, которую выбрал админ
-      const duration = selectedPlan.duration_days || 30;
-      const endDate = addDays(activationDate, duration);
-
+      // start_date = дата покупки (сегодня)
+      // activation_date = NULL (проставится автоматически при первом посещении)
+      // end_date = NULL (рассчитается триггером при активации)
       const { error } = await supabase.from('user_subscriptions').insert([{
         user_id: sellForm.user_id,
         plan_id: selectedPlan.id,
         visits_total: selectedPlan.visits_count,
-        visits_remaining: selectedPlan.visits_count, // Изначально равно total
-        activation_date: format(activationDate, 'yyyy-MM-dd'),
-        start_date: format(activationDate, 'yyyy-MM-dd'), 
-        end_date: format(endDate, 'yyyy-MM-dd'),
+        visits_remaining: selectedPlan.visits_count,
+        start_date: format(new Date(), 'yyyy-MM-dd'),
+        activation_date: null,
+        end_date: null,
         is_active: true
       }]);
       
@@ -119,7 +117,7 @@ const Subscriptions = () => {
     onSuccess: () => {
       toast.success("Абонемент выдан");
       setIsSellDialogOpen(false);
-      setSellForm({ user_id: "", plan_id: "", activation_date: format(new Date(), 'yyyy-MM-dd') });
+      setSellForm({ user_id: "", plan_id: "" });
       queryClient.invalidateQueries({ queryKey: ['user_subscriptions_full'] });
     },
     onError: (err: any) => toast.error("Ошибка: " + err.message)
@@ -128,13 +126,13 @@ const Subscriptions = () => {
   // РЕДАКТИРОВАНИЕ
   const editMutation = useMutation({
     mutationFn: async () => {
+      const visits = parseInt(editForm.visits_remaining);
+      if (isNaN(visits) || visits < 0) throw new Error("Остаток занятий не может быть отрицательным");
       const { error } = await supabase.from('user_subscriptions').update({
-            // Мы все еще позволяем менять visits_remaining вручную админу, если нужно
-            visits_remaining: parseInt(editForm.visits_remaining),
-            activation_date: editForm.activation_date,
-            start_date: editForm.activation_date,
-            end_date: editForm.end_date,
-            is_active: editForm.is_active 
+            visits_remaining: visits,
+            activation_date: editForm.activation_date || null,
+            end_date: editForm.end_date || null,
+            is_active: editForm.is_active
         }).eq('id', editForm.id);
       if (error) throw error;
     },
@@ -157,37 +155,31 @@ const Subscriptions = () => {
     }
   });
 
-  // --- ЛОГИКА СТАТУСОВ (Улучшенная) ---
+  // --- ЛОГИКА СТАТУСОВ ---
   const getSubscriptionStatus = (sub: any) => {
     if (!sub.is_active) return { label: "Архив", color: "bg-gray-200 text-gray-600", code: "finished" };
-    
-    // Если visits_total не null (лимитный) и остаток 0 -> Закончился
+
     if (sub.visits_total !== null && sub.visits_remaining <= 0) {
         return { label: "Закончился", color: "bg-gray-200 text-gray-600", code: "finished" };
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-
-    // Проверка активации
-    if (sub.activation_date) {
-        const activationDate = parseISO(sub.activation_date);
-        if (isFuture(activationDate)) {
-            return { label: "Ждет активации", color: "bg-blue-100 text-blue-800", code: "pending" };
-        }
+    // Не активирован — куплен, но ни разу не посещал
+    if (!sub.activation_date) {
+        return { label: "Куплен", color: "bg-blue-100 text-blue-800", code: "pending" };
     }
 
-    if (!sub.end_date) return { label: "Активен", color: "bg-green-100 text-green-800", code: "active" };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (!sub.end_date) return { label: "Действует", color: "bg-green-100 text-green-800", code: "active" };
 
     const endDate = parseISO(sub.end_date);
-    
     if (isPast(endDate) && !isToday(endDate)) return { label: "Истек", color: "bg-red-100 text-red-800", code: "expired" };
 
     const daysLeft = differenceInDays(endDate, today);
-
     if (daysLeft <= 3) return { label: "Истекает", color: "bg-red-100 text-red-800", code: "critical" };
     if (daysLeft <= 7) return { label: "Скоро истекает", color: "bg-orange-100 text-orange-800", code: "warning" };
-    
+
     return { label: "Действует", color: "bg-green-100 text-green-800", code: "active" };
   };
 
@@ -211,6 +203,7 @@ const Subscriptions = () => {
     setEditForm({
         id: sub.id,
         visits_remaining: sub.visits_remaining,
+        start_date: sub.start_date ? format(parseISO(sub.start_date), 'yyyy-MM-dd') : "",
         activation_date: sub.activation_date ? format(parseISO(sub.activation_date), 'yyyy-MM-dd') : "",
         end_date: sub.end_date ? format(parseISO(sub.end_date), 'yyyy-MM-dd') : "",
         is_active: sub.is_active
@@ -243,22 +236,32 @@ const Subscriptions = () => {
       }
     },
     {
-        header: "Активация",
+        header: "Куплен",
+        cell: ({ row }: any) => (
+            <div className="text-sm text-gray-500">
+                {row.original.start_date ? format(parseISO(row.original.start_date), 'dd.MM.yy') : "-"}
+            </div>
+        )
+    },
+    {
+        header: "Активирован",
         cell: ({ row }: any) => (
             <div className="text-sm">
-                {row.original.activation_date ? format(parseISO(row.original.activation_date), 'dd.MM.yyyy') : "-"}
+                {row.original.activation_date
+                    ? format(parseISO(row.original.activation_date), 'dd.MM.yy')
+                    : <span className="text-blue-500 text-xs">не активирован</span>}
             </div>
         )
     },
     {
         header: "Окончание",
         cell: ({ row }: any) => {
-            if (!row.original.end_date) return <span className="text-gray-400">-</span>;
+            if (!row.original.end_date) return <span className="text-gray-400 text-xs">—</span>;
             const status = getSubscriptionStatus(row.original);
             let dateColor = "text-gray-900";
             if (status.code === "critical") dateColor = "text-red-600 font-bold";
-            if (status.code === "expired") dateColor = "text-gray-400 decoration-line-through";
-            return <div className={`text-sm ${dateColor}`}>{format(parseISO(row.original.end_date), 'dd.MM.yyyy')}</div>
+            if (status.code === "expired") dateColor = "text-gray-400 line-through";
+            return <div className={`text-sm ${dateColor}`}>{format(parseISO(row.original.end_date), 'dd.MM.yy')}</div>;
         }
     },
     {
@@ -364,15 +367,8 @@ const Subscriptions = () => {
                     </Select>
                 </div>
 
-                {/* ДАТА АКТИВАЦИИ */}
-                <div className="space-y-2">
-                    <Label>Дата активации (начала)</Label>
-                    <Input 
-                        type="date" 
-                        value={sellForm.activation_date} 
-                        onChange={(e) => setSellForm({...sellForm, activation_date: e.target.value})} 
-                    />
-                    <p className="text-xs text-muted-foreground">Если выбрать будущую дату, статус будет "Ждет активации".</p>
+                <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-700">
+                    Дата покупки — сегодня. Таймер начнётся автоматически при первом посещении клиента.
                 </div>
             </div>
             <DialogFooter>
@@ -477,30 +473,30 @@ const Subscriptions = () => {
             <div className="grid gap-4 py-4">
                 <div className="space-y-2">
                     <Label>Остаток посещений</Label>
-                    <Input type="number" value={editForm.visits_remaining} onChange={e => setEditForm({...editForm, visits_remaining: e.target.value})} />
+                    <Input type="number" min="0" value={editForm.visits_remaining} onChange={e => setEditForm({...editForm, visits_remaining: e.target.value})} />
                 </div>
                 <div className="space-y-2">
-                    <Label>Дата активации</Label>
-                    <Input 
-                        type="date" 
-                        value={editForm.activation_date} 
-                        onChange={e => {
-                            // При изменении активации можно предлагать пересчитать дату окончания
-                            // Пока просто меняем стейт
-                            setEditForm({...editForm, activation_date: e.target.value});
-                        }} 
+                    <Label className="text-muted-foreground text-xs">Дата покупки (не редактируется)</Label>
+                    <Input type="date" value={editForm.start_date} disabled className="bg-gray-50 text-gray-500" />
+                </div>
+                <div className="space-y-2">
+                    <Label>Дата активации <span className="text-muted-foreground font-normal">(пусто = не активирован)</span></Label>
+                    <Input
+                        type="date"
+                        value={editForm.activation_date}
+                        onChange={e => setEditForm({...editForm, activation_date: e.target.value})}
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label>Дата окончания</Label>
+                    <Label>Дата окончания <span className="text-muted-foreground font-normal">(пусто = не рассчитана)</span></Label>
                     <Input type="date" value={editForm.end_date} onChange={e => setEditForm({...editForm, end_date: e.target.value})} />
                 </div>
                 <div className="flex items-center gap-2">
-                    <input 
-                        type="checkbox" 
-                        id="is_active_edit" 
-                        checked={editForm.is_active} 
-                        onChange={e => setEditForm({...editForm, is_active: e.target.checked})} 
+                    <input
+                        type="checkbox"
+                        id="is_active_edit"
+                        checked={editForm.is_active}
+                        onChange={e => setEditForm({...editForm, is_active: e.target.checked})}
                         className="h-4 w-4"
                     />
                     <Label htmlFor="is_active_edit">Абонемент активен</Label>
