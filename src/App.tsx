@@ -33,6 +33,7 @@ import NotFound from "./pages/NotFound";
 import AllUsers from "./pages/admin/AllUsers";
 import AdminCheckIn from "./pages/admin/AdminCheckIn";
 import OwnerPayroll from "./pages/OwnerPayroll";
+import OwnerLogs from "./pages/OwnerLogs";
 import TrainerLogin from "./pages/trainer/TrainerLogin";
 import TrainerHome from "./pages/trainer/TrainerHome";
 import TrainerSchedule from "./pages/trainer/TrainerSchedule";
@@ -201,6 +202,7 @@ const App = () => (
             <Route path="/admin/users" element={<AllUsers />} />
             <Route path="/admin/checkin" element={<AdminCheckIn />} />
             <Route path="/owner/payroll" element={<OwnerPayroll />} />
+            <Route path="/owner/logs" element={<OwnerLogs />} />
           </Route>
 
           {/* === ТРЕНЕРСКИЙ ПОРТАЛ === */}

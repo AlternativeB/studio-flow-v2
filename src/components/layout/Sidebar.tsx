@@ -14,8 +14,9 @@ import {
   Globe,
   Tags,
   Dumbbell,
-  ShieldCheck, // Иконка для раздела "Все пользователи"
-  DollarSign
+  ShieldCheck,
+  DollarSign,
+  ScrollText
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,10 @@ export const Sidebar = () => {
     { name: "Пробные", href: "/trials", icon: Percent },
     { name: "Агрегаторы", href: "/aggregators", icon: Globe },
     { name: "Все пользователи", href: "/admin/users", icon: ShieldCheck },
-    ...(currentUserRole === 'owner' ? [{ name: "Расчёт зарплаты", href: "/owner/payroll", icon: DollarSign }] : []),
+    ...(currentUserRole === 'owner' ? [
+      { name: "Расчёт зарплаты", href: "/owner/payroll", icon: DollarSign },
+      { name: "Журнал событий", href: "/owner/logs", icon: ScrollText },
+    ] : []),
     { name: "Настройки", href: "/settings", icon: Settings },
   ];
 
