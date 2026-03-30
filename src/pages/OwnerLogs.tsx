@@ -15,9 +15,22 @@ const EVENT_FILTERS: { value: EventType; label: string }[] = [
   { value: "aggregators", label: "Агрегаторы" },
 ];
 
+const PAGE_SIZE = 50;
+
 const OwnerLogs = () => {
   const [monthOffset, setMonthOffset] = useState(0);
   const [eventFilter, setEventFilter] = useState<EventType>("all");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const handleMonthChange = (delta: number) => {
+    setMonthOffset((p) => p + delta);
+    setVisibleCount(PAGE_SIZE);
+  };
+
+  const handleFilterChange = (f: EventType) => {
+    setEventFilter(f);
+    setVisibleCount(PAGE_SIZE);
+  };
 
   const targetDate = new Date();
   targetDate.setMonth(targetDate.getMonth() + monthOffset);
@@ -149,13 +162,13 @@ const OwnerLogs = () => {
           <p className="text-muted-foreground text-sm">Активность за месяц</p>
         </div>
         <div className="flex items-center gap-1 bg-muted border rounded-lg p-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonthOffset((p) => p - 1)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleMonthChange(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium px-3 capitalize min-w-[110px] text-center">
             {format(targetDate, "LLLL yyyy", { locale: ru })}
           </span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonthOffset((p) => p + 1)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleMonthChange(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -166,7 +179,7 @@ const OwnerLogs = () => {
         {EVENT_FILTERS.map((f) => (
           <button
             key={f.value}
-            onClick={() => setEventFilter(f.value)}
+            onClick={() => handleFilterChange(f.value)}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               eventFilter === f.value
                 ? "bg-primary text-white"
@@ -189,7 +202,7 @@ const OwnerLogs = () => {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((event) => (
+          {filtered.slice(0, visibleCount).map((event) => (
             <div key={event.id} className="bg-white border rounded-xl p-4 shadow-sm flex items-start gap-3">
               <div className={`p-2 rounded-full shrink-0 mt-0.5 ${getColor(event.type)}`}>
                 {getIcon(event.type)}
@@ -203,6 +216,15 @@ const OwnerLogs = () => {
               </span>
             </div>
           ))}
+          {visibleCount < filtered.length && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+            >
+              Показать ещё ({filtered.length - visibleCount})
+            </Button>
+          )}
         </div>
       )}
     </div>

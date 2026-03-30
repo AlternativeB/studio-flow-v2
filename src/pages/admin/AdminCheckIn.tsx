@@ -282,14 +282,19 @@ const AdminCheckIn = () => {
             variant="outline"
             className="h-16 text-base rounded-2xl border-red-200 text-red-600 hover:bg-red-50 active:bg-red-100"
             onClick={() => handleMark(current.id, "absent")}
+            disabled={markMutation.isPending}
           >
             <X className="mr-2 w-5 h-5" /> Не пришёл
           </Button>
           <Button
             className="h-16 text-base rounded-2xl bg-green-500 hover:bg-green-600 active:bg-green-700"
             onClick={() => handleMark(current.id, "attended")}
+            disabled={markMutation.isPending}
           >
-            <Check className="mr-2 w-5 h-5" /> Пришёл
+            {markMutation.isPending
+              ? <Loader2 className="mr-2 w-5 h-5 animate-spin" />
+              : <Check className="mr-2 w-5 h-5" />}
+            Пришёл
           </Button>
         </div>
       </div>

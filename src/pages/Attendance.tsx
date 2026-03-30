@@ -28,6 +28,7 @@ const Attendance = () => {
   const [filterInstructor, setFilterInstructor] = useState("all");
   const [filterClassType, setFilterClassType] = useState("all");
 
+  const [pendingBookingId, setPendingBookingId] = useState<string | null>(null);
   const [isBookDialogOpen, setIsBookDialogOpen] = useState(false);
   const [bookDate, setBookDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [bookForm, setBookForm] = useState({ session_id: "", client_id: "" });
@@ -187,9 +188,11 @@ const Attendance = () => {
     },
     onSuccess: () => {
         toast.success("Статус изменен");
+        setPendingBookingId(null);
         queryClient.invalidateQueries({ queryKey: ['attendance_report'] });
     },
     onError: (err: any) => {
+        setPendingBookingId(null);
         if (err.message !== "Отмена прервана администратором") {
             toast.error("Ошибка: " + err.message);
         }
@@ -458,12 +461,16 @@ const Attendance = () => {
                                                         </div>
                                                         <Select
                                                             defaultValue={booking.status}
-                                                            onValueChange={(val) => updateStatusMutation.mutate({
-                                                                id: booking.id,
-                                                                status: val,
-                                                                sessionDate: format(parseISO(session.start_time), 'yyyy-MM-dd'),
-                                                                sessionTime: session.start_time 
-                                                            })}
+                                                            disabled={pendingBookingId === booking.id}
+                                                            onValueChange={(val) => {
+                                                                setPendingBookingId(booking.id);
+                                                                updateStatusMutation.mutate({
+                                                                    id: booking.id,
+                                                                    status: val,
+                                                                    sessionDate: format(parseISO(session.start_time), 'yyyy-MM-dd'),
+                                                                    sessionTime: session.start_time
+                                                                });
+                                                            }}
                                                         >
                                                             <SelectTrigger className={`w-[110px] h-7 text-xs font-bold border ${bgClass}`}>
                                                                 <SelectValue />
@@ -550,12 +557,16 @@ const Attendance = () => {
                                           {/* Управление статусом */}
                                           <Select
                                               defaultValue={booking.status}
-                                              onValueChange={(val) => updateStatusMutation.mutate({
-                                                  id: booking.id,
-                                                  status: val,
-                                                  sessionDate: format(parseISO(session.start_time), 'yyyy-MM-dd'),
-                                                  sessionTime: session.start_time 
-                                              })}
+                                              disabled={pendingBookingId === booking.id}
+                                              onValueChange={(val) => {
+                                                  setPendingBookingId(booking.id);
+                                                  updateStatusMutation.mutate({
+                                                      id: booking.id,
+                                                      status: val,
+                                                      sessionDate: format(parseISO(session.start_time), 'yyyy-MM-dd'),
+                                                      sessionTime: session.start_time
+                                                  });
+                                              }}
                                           >
                                               <SelectTrigger className="w-full h-8 text-xs font-medium bg-white shadow-sm border-gray-200">
                                                   <SelectValue />

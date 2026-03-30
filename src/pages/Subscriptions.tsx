@@ -280,7 +280,7 @@ const Subscriptions = () => {
             <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-500" onClick={() => handleEdit(row.original)}>
                 <Pencil className="w-4 h-4" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400" onClick={() => deleteMutation.mutate(row.original.id)}>
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400" disabled={deleteMutation.isPending} onClick={() => { if (confirm("Удалить абонемент?")) deleteMutation.mutate(row.original.id); }}>
                 <Trash2 className="w-4 h-4" />
             </Button>
         </div>
@@ -453,7 +453,7 @@ const Subscriptions = () => {
               </div>
               <div className="flex gap-2 mt-3">
                 <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => handleEdit(sub)}>Изменить</Button>
-                <Button size="sm" variant="ghost" className="h-8 text-xs text-red-400" onClick={() => deleteMutation.mutate(sub.id)}>Удалить</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-xs text-red-400" disabled={deleteMutation.isPending} onClick={() => { if (confirm("Удалить абонемент?")) deleteMutation.mutate(sub.id); }}>Удалить</Button>
               </div>
             </div>
           );
