@@ -123,12 +123,13 @@ const Attendance = () => {
       
       if (error) throw error;
 
+      const todayStr = new Date().toISOString().split('T')[0];
       const { data: subs } = await supabase
         .from('user_subscriptions')
         .select(`id, user_id, visits_remaining, end_date, plan:subscription_plans(name), is_active`)
         .eq('is_active', true)
         .gt('visits_remaining', 0)
-        .gte('end_date', new Date().toISOString().split('T')[0]);
+        .or('end_date.is.null,end_date.gte.' + todayStr);
 
       return profiles.map((p: any) => ({
         ...p,
