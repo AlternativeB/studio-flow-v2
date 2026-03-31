@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { format, parseISO, subDays } from "date-fns";
+import {
+  format, parseISO, startOfWeek, endOfWeek, addDays, addWeeks, isSameDay
+} from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Check, X, Phone, Users, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, Check, X, Phone, Users,
+  Loader2, CheckCircle2, UserPlus, Search
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -20,23 +26,38 @@ const AdminCheckIn = () => {
   const [fitCount, setFitCount] = useState("");
   const [fitAggregator, setFitAggregator] = useState("1Fit");
 
-  // Сессии за последние 3 дня
+  // Day picker state
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(new Date());
+
+  const baseDate = addWeeks(new Date(), weekOffset);
+  const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 });
+  const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
+
+  // Walk-in booking state
+  const [walkInSession, setWalkInSession] = useState<any>(null);
+  const [walkInSearch, setWalkInSearch] = useState("");
+  const [walkInClientId, setWalkInClientId] = useState<string | null>(null);
+
+  // Sessions for selected day
   const { data: sessions = [], isLoading: loadingSessions } = useQuery({
-    queryKey: ["checkin_sessions"],
+    queryKey: ["checkin_sessions", format(selectedDay, "yyyy-MM-dd")],
     queryFn: async () => {
-      const from = subDays(new Date(), 3).toISOString();
-      const to = new Date().toISOString();
+      const dayStart = new Date(selectedDay);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(selectedDay);
+      dayEnd.setHours(23, 59, 59, 999);
       const { data } = await supabase
         .from("schedule_sessions")
         .select("id, start_time, end_time, capacity, class_type:class_types(name, color), coach:coaches(name), bookings(count)")
-        .gte("start_time", from)
-        .lte("start_time", to)
-        .order("start_time", { ascending: false });
+        .gte("start_time", dayStart.toISOString())
+        .lte("start_time", dayEnd.toISOString())
+        .order("start_time", { ascending: true });
       return data || [];
     },
   });
 
-  // Записи на выбранный урок
+  // Bookings for checkin step
   const { data: bookings = [], isLoading: loadingBookings } = useQuery({
     queryKey: ["checkin_bookings", selectedSession?.id],
     queryFn: async () => {
@@ -50,7 +71,32 @@ const AdminCheckIn = () => {
     enabled: !!selectedSession,
   });
 
-  // При загрузке записей — предзаполняем уже отмеченных
+  // Active clients with subscriptions for walk-in
+  const { data: activeClients = [], isLoading: loadingClients } = useQuery({
+    queryKey: ["walkin_clients"],
+    queryFn: async () => {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, phone")
+        .eq("role", "client")
+        .order("first_name");
+
+      const { data: subs } = await supabase
+        .from("user_subscriptions")
+        .select("id, user_id, visits_remaining, end_date, plan:subscription_plans(name)")
+        .eq("is_active", true)
+        .gt("visits_remaining", 0)
+        .or("end_date.is.null,end_date.gte." + todayStr);
+
+      return (profiles || []).map((p: any) => ({
+        ...p,
+        subscription: subs?.find((s: any) => s.user_id === p.id) || null,
+      })).filter((p: any) => p.subscription !== null);
+    },
+    enabled: !!walkInSession,
+  });
+
   useEffect(() => {
     if (bookings.length > 0) {
       const initial: Record<string, "attended" | "absent"> = {};
@@ -63,14 +109,13 @@ const AdminCheckIn = () => {
     }
   }, [bookings]);
 
-  // Мутация: отметить посещение (сохраняет сразу при нажатии)
+  // Mutations
   const markMutation = useMutation({
     mutationFn: async ({ bookingId, status }: { bookingId: string; status: string }) => {
       await supabase.from("bookings").update({ status }).eq("id", bookingId);
     },
   });
 
-  // Мутация: сохранить агрегатора
   const saveAggregatorMutation = useMutation({
     mutationFn: async () => {
       if (!fitCount || parseInt(fitCount) <= 0) return;
@@ -85,6 +130,52 @@ const AdminCheckIn = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["aggregator_session_visits"] });
       setStep("done");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const walkInMutation = useMutation({
+    mutationFn: async ({ clientId, sessionId }: { clientId: string; sessionId: string }) => {
+      const todayStr = new Date().toISOString().split("T")[0];
+
+      // Check not already booked
+      const { data: existing } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("session_id", sessionId)
+        .eq("user_id", clientId)
+        .neq("status", "cancelled")
+        .maybeSingle();
+      if (existing) throw new Error("Клиент уже записан на это занятие");
+
+      // Find best active subscription
+      const { data: subs } = await supabase
+        .from("user_subscriptions")
+        .select("id, visits_remaining")
+        .eq("user_id", clientId)
+        .eq("is_active", true)
+        .gt("visits_remaining", 0)
+        .or("end_date.is.null,end_date.gte." + todayStr)
+        .order("end_date", { ascending: true, nullsFirst: false })
+        .limit(1);
+
+      if (!subs || subs.length === 0) throw new Error("Нет активного абонемента с остатком занятий");
+
+      const { error } = await supabase.from("bookings").insert({
+        session_id: sessionId,
+        user_id: clientId,
+        subscription_id: subs[0].id,
+        status: "booked",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Клиент записан!");
+      setWalkInSession(null);
+      setWalkInClientId(null);
+      setWalkInSearch("");
+      queryClient.invalidateQueries({ queryKey: ["checkin_sessions", format(selectedDay, "yyyy-MM-dd")] });
+      queryClient.invalidateQueries({ queryKey: ["checkin_bookings"] });
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -112,17 +203,71 @@ const AdminCheckIn = () => {
     setCurrentIndex(0);
     setAttendance({});
     setFitCount("");
-    queryClient.invalidateQueries({ queryKey: ["checkin_sessions"] });
+    queryClient.invalidateQueries({ queryKey: ["checkin_sessions", format(selectedDay, "yyyy-MM-dd")] });
   };
 
-  // ── ШАГ 1: Список уроков ───────────────────────────────────────────────
+  const filteredWalkIn = activeClients.filter((c: any) => {
+    const q = walkInSearch.toLowerCase();
+    return (
+      !q ||
+      c.first_name?.toLowerCase().includes(q) ||
+      c.last_name?.toLowerCase().includes(q) ||
+      c.phone?.includes(q)
+    );
+  });
+
+  // ── Day picker (always visible on sessions step) ──────────────────────────
+  const DayPicker = () => (
+    <div className="space-y-2 shrink-0">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekOffset((p) => p - 1)}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-xs font-medium text-muted-foreground capitalize">
+          {format(weekStart, "d MMM", { locale: ru })} — {format(addDays(weekStart, 6), "d MMM yyyy", { locale: ru })}
+        </span>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekOffset((p) => p + 1)}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {weekDays.map((day) => {
+          const isSelected = isSameDay(day, selectedDay);
+          const isToday = isSameDay(day, new Date());
+          return (
+            <button
+              key={day.toISOString()}
+              onClick={() => setSelectedDay(day)}
+              className={cn(
+                "flex flex-col items-center py-2 rounded-lg border transition-all",
+                isSelected
+                  ? "bg-primary text-white border-primary shadow-md"
+                  : isToday
+                  ? "border-blue-300 bg-blue-50/50 text-gray-700"
+                  : "bg-white border-gray-100 text-gray-500"
+              )}
+            >
+              <span className="text-[9px] font-bold uppercase">
+                {format(day, "EEE", { locale: ru }).slice(0, 2)}
+              </span>
+              <span className="text-base font-bold leading-tight">{format(day, "d")}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // ── ШАГ 1: Список уроков ─────────────────────────────────────────────────
   if (step === "sessions") {
     return (
-      <div className="space-y-4 animate-in fade-in pb-8">
+      <div className="flex flex-col gap-4 animate-in fade-in pb-8">
         <div>
           <h1 className="text-2xl font-bold">Записать клиента</h1>
-          <p className="text-sm text-muted-foreground">Выберите урок за последние 3 дня</p>
+          <p className="text-sm text-muted-foreground">Выберите день и занятие</p>
         </div>
+
+        <DayPicker />
 
         {loadingSessions ? (
           <div className="flex justify-center py-12">
@@ -130,52 +275,124 @@ const AdminCheckIn = () => {
           </div>
         ) : sessions.length === 0 ? (
           <div className="text-center py-12 border border-dashed rounded-2xl text-muted-foreground">
-            Уроков за последние 3 дня не найдено
+            На этот день занятий нет
           </div>
         ) : (
           <div className="space-y-3">
             {(sessions as any[]).map((session) => {
               const booked = session.bookings?.[0]?.count || 0;
               return (
-                <button
+                <div
                   key={session.id}
-                  onClick={() => handleSelectSession(session)}
-                  className="w-full text-left bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex active:scale-[0.98] transition-all"
+                  className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden"
                 >
-                  <div
-                    className="w-1.5 shrink-0"
-                    style={{ backgroundColor: session.class_type?.color || "#3b82f6" }}
-                  />
-                  <div className="p-4 flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="min-w-0">
-                        <p className="font-bold text-base truncate">{session.class_type?.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {format(parseISO(session.start_time), "dd MMM, HH:mm", { locale: ru })}
-                        </p>
-                        {session.coach?.name && (
-                          <p className="text-xs text-gray-400 mt-0.5 truncate">{session.coach.name}</p>
-                        )}
+                  <div className="flex">
+                    <div
+                      className="w-1.5 shrink-0"
+                      style={{ backgroundColor: session.class_type?.color || "#3b82f6" }}
+                    />
+                    <div className="p-4 flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-2 mb-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-base truncate">{session.class_type?.name}</p>
+                          <p className="text-sm text-gray-500">
+                            {format(parseISO(session.start_time), "HH:mm", { locale: ru })}
+                            {session.coach?.name && ` · ${session.coach.name}`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 bg-blue-50 rounded-xl px-3 py-1.5 shrink-0">
+                          <Users className="w-4 h-4 text-blue-500" />
+                          <span className="font-bold text-blue-700">{booked}/{session.capacity}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 bg-blue-50 rounded-xl px-3 py-1.5 shrink-0">
-                        <Users className="w-4 h-4 text-blue-500" />
-                        <span className="font-bold text-blue-700">{booked}</span>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 rounded-xl"
+                          onClick={() => { setWalkInSession(session); setWalkInClientId(null); setWalkInSearch(""); }}
+                        >
+                          <UserPlus className="w-4 h-4 mr-1.5" /> Записать
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 rounded-xl"
+                          onClick={() => handleSelectSession(session)}
+                        >
+                          <Check className="w-4 h-4 mr-1.5" /> Отметить
+                        </Button>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center pr-3">
-                    <ChevronRight className="w-5 h-5 text-gray-300" />
-                  </div>
-                </button>
+                </div>
               );
             })}
           </div>
         )}
+
+        {/* Walk-in dialog */}
+        <Dialog open={!!walkInSession} onOpenChange={(open) => { if (!open) setWalkInSession(null); }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Записать клиента</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                {walkInSession?.class_type?.name} · {walkInSession && format(parseISO(walkInSession.start_time), "HH:mm")}
+              </p>
+            </DialogHeader>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <Input
+                className="pl-9"
+                placeholder="Поиск клиента..."
+                value={walkInSearch}
+                onChange={(e) => { setWalkInSearch(e.target.value); setWalkInClientId(null); }}
+                autoFocus
+              />
+            </div>
+
+            {loadingClients ? (
+              <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary" /></div>
+            ) : (
+              <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                {filteredWalkIn.length === 0 ? (
+                  <p className="text-center text-sm text-muted-foreground py-4">Клиентов с активным абонементом нет</p>
+                ) : filteredWalkIn.map((c: any) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setWalkInClientId(c.id)}
+                    className={cn(
+                      "w-full text-left p-3 rounded-xl border transition-all",
+                      walkInClientId === c.id
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-100 bg-white hover:border-gray-200"
+                    )}
+                  >
+                    <div className="font-medium text-sm">{c.first_name} {c.last_name}</div>
+                    <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+                      <Phone className="w-3 h-3" />{c.phone}
+                      <span className="text-green-600 font-medium">· {c.subscription?.visits_remaining} зан.</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <Button
+              className="w-full rounded-xl"
+              disabled={!walkInClientId || walkInMutation.isPending}
+              onClick={() => walkInClientId && walkInSession && walkInMutation.mutate({ clientId: walkInClientId, sessionId: walkInSession.id })}
+            >
+              {walkInMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Записать
+            </Button>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
 
-  // ── ШАГ 2: Тиндер-режим ────────────────────────────────────────────────
+  // ── ШАГ 2: Тиндер-режим ──────────────────────────────────────────────────
   if (step === "checkin") {
     if (loadingBookings) {
       return (
@@ -205,7 +422,6 @@ const AdminCheckIn = () => {
 
     return (
       <div className="flex flex-col h-[calc(100vh-5rem)] animate-in fade-in">
-        {/* Шапка */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
           <Button variant="ghost" size="icon" onClick={() => setStep("sessions")}>
             <ChevronLeft className="w-5 h-5" />
@@ -221,7 +437,6 @@ const AdminCheckIn = () => {
           <div className="w-9" />
         </div>
 
-        {/* Прогресс-бар */}
         <div className="px-4 shrink-0">
           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div
@@ -238,7 +453,6 @@ const AdminCheckIn = () => {
           </div>
         </div>
 
-        {/* Карточка клиента */}
         <div className="flex-1 flex items-center justify-center px-6 py-4">
           <div
             className={cn(
@@ -276,7 +490,6 @@ const AdminCheckIn = () => {
           </div>
         </div>
 
-        {/* Кнопки */}
         <div className="px-4 pb-6 grid grid-cols-2 gap-3 shrink-0">
           <Button
             variant="outline"
@@ -301,7 +514,7 @@ const AdminCheckIn = () => {
     );
   }
 
-  // ── ШАГ 3: Агрегатор ──────────────────────────────────────────────────
+  // ── ШАГ 3: Агрегатор ─────────────────────────────────────────────────────
   if (step === "aggregator") {
     const attendedCount = Object.values(attendance).filter((s) => s === "attended").length;
     const absentCount = Object.values(attendance).filter((s) => s === "absent").length;
@@ -309,20 +522,12 @@ const AdminCheckIn = () => {
     return (
       <div className="space-y-5 animate-in fade-in pb-8">
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setStep("checkin");
-              setCurrentIndex(Math.max(0, bookings.length - 1));
-            }}
-          >
+          <Button variant="ghost" size="icon" onClick={() => { setStep("checkin"); setCurrentIndex(Math.max(0, bookings.length - 1)); }}>
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-xl font-bold">Итог урока</h1>
         </div>
 
-        {/* Итог */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
             <div className="text-3xl font-bold text-green-600">{attendedCount}</div>
@@ -334,7 +539,6 @@ const AdminCheckIn = () => {
           </div>
         </div>
 
-        {/* Карточка 1FIT */}
         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center shrink-0">
@@ -377,7 +581,7 @@ const AdminCheckIn = () => {
     );
   }
 
-  // ── ШАГ 4: Готово ─────────────────────────────────────────────────────
+  // ── ШАГ 4: Готово ────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 animate-in fade-in text-center pb-8">
       <CheckCircle2 className="w-20 h-20 text-green-500" />
