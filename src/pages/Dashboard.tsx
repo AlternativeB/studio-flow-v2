@@ -64,13 +64,13 @@ const Dashboard = () => {
   return (
     <div className="space-y-8 animate-in fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Обзор студии</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Обзор студии</h1>
         <p className="text-muted-foreground mt-2">
           Добро пожаловать в панель управления.
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Всего клиентов"
           value={stats?.clients || 0}
@@ -94,11 +94,11 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <div className="lg:col-span-4 h-full">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-7">
+        <div className="lg:col-span-4">
           <UpcomingClasses />
         </div>
-        <div className="lg:col-span-3 h-full">
+        <div className="lg:col-span-3">
           <RecentActivity />
         </div>
       </div>

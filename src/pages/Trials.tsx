@@ -252,11 +252,11 @@ const Trials = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Пробные / Лиды</h1>
-        
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl md:text-3xl font-bold">Пробные / Лиды</h1>
+
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <Button onClick={openCreateDialog}><Plus className="mr-2 h-4 w-4" /> Добавить пробного</Button>
+          <Button onClick={openCreateDialog}><Plus className="mr-2 h-4 w-4" /> Добавить</Button>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingClient ? "Редактирование" : "Новый лид"}</DialogTitle>
@@ -302,7 +302,63 @@ const Trials = () => {
       </div>
 
       {isLoading ? <Loader2 className="animate-spin" /> : (
-        <DataTable columns={columns} data={filteredClients} emptyMessage="Лидов нет" />
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {filteredClients.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Лидов нет</p>
+            ) : filteredClients.map((c: any) => {
+              const status = c.lead_status || 'booked';
+              let badgeClass = "bg-blue-50 text-blue-700 border-blue-200";
+              if (status === 'attended') badgeClass = "bg-purple-50 text-purple-700 border-purple-200";
+              if (status === 'paid') badgeClass = "bg-green-50 text-green-700 border-green-200";
+              if (status === 'active') badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+              if (status === 'inactive') badgeClass = "bg-gray-100 text-gray-700 border-gray-300";
+              if (status === 'churned') badgeClass = "bg-red-50 text-red-700 border-red-200";
+              return (
+                <div key={c.id} className="bg-white border rounded-xl p-4 shadow-sm space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-semibold text-sm cursor-pointer hover:text-blue-600" onClick={() => openEditDialog(c)}>
+                      {c.first_name} {c.last_name}
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(c)}>
+                        <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400" onClick={() => deleteMutation.mutate(c.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <Phone className="w-3 h-3" />{c.phone}
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <Select defaultValue={status} onValueChange={(val) => updateStatusMutation.mutate({ id: c.id, status: val })}>
+                      <SelectTrigger className={`h-7 text-xs font-bold border w-[140px] ${badgeClass}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="booked">Записан</SelectItem>
+                        <SelectItem value="attended">Пришел</SelectItem>
+                        <SelectItem value="paid">Оплатил</SelectItem>
+                        <SelectItem value="active">Активен</SelectItem>
+                        <SelectItem value="inactive">Неактивен</SelectItem>
+                        <SelectItem value="churned">Отток</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {c.notes && <span className="text-xs text-gray-400 truncate">{c.notes}</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block">
+            <DataTable columns={columns} data={filteredClients} emptyMessage="Лидов нет" />
+          </div>
+        </>
       )}
     </div>
   );

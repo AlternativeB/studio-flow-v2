@@ -19,11 +19,11 @@ export const StatCard = ({
   iconColor = "bg-primary/10 text-primary",
 }: StatCardProps) => {
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition-all hover:shadow-md">
+    <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-100 shadow-sm transition-all hover:shadow-md">
       <div className="flex items-start justify-between">
-        <div>
+        <div className="min-w-0 flex-1 pr-2">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold mt-2 text-gray-900">{value}</p>
+          <p className="text-2xl md:text-3xl font-bold mt-2 text-gray-900 break-words">{value}</p>
           {change && (
             <p
               className={cn(

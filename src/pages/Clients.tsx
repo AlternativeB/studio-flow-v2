@@ -147,24 +147,24 @@ export default function Clients() {
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Клиенты</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Клиенты</h1>
           <p className="text-muted-foreground">Управление базой клиентов</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={exportToExcel}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
-            Экспорт в Excel
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={exportToExcel}>
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="hidden sm:inline ml-2">Экспорт</span>
           </Button>
-          <Button onClick={() => navigate('/trials')}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Добавить
+          <Button size="sm" onClick={() => navigate('/trials')}>
+            <UserPlus className="h-4 w-4" />
+            <span className="hidden sm:inline ml-2">Добавить</span>
           </Button>
         </div>
       </div>
 
-      <div className="flex gap-4 items-center bg-card p-4 rounded-lg border shadow-sm">
+      <div className="flex flex-wrap gap-3 items-center bg-card p-4 rounded-lg border shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -175,7 +175,7 @@ export default function Clients() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Статус абонемента" />
           </SelectTrigger>
           <SelectContent>
