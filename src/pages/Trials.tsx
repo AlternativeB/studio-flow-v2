@@ -47,8 +47,9 @@ const Trials = () => {
     mutationFn: async () => {
       if (!formData.first_name || !formData.phone) throw new Error("Имя и телефон обязательны");
       
-      const fakeEmail = `${formData.phone.replace(/\D/g,'')}@balance.local`;
-      const password = "default-password";
+      const cleanPhone = formData.phone.replace(/\D/g, '');
+      const fakeEmail = `${cleanPhone}@balance.local`;
+      const password = `yoga${cleanPhone.slice(-4)}`;
 
       const tempSupabase = createClient(
         import.meta.env.VITE_SUPABASE_URL,
