@@ -78,7 +78,7 @@ const ClientSchedule = () => {
             id, start_time, end_time, capacity,
             class_type:class_types(name, color, description),
             coach:coaches(name),
-            my_booking:bookings(id, user_id, subscription_id),
+            my_booking:bookings(id, user_id, subscription_id, status),
             all_bookings:bookings(count)
         `)
         .gte('start_time', start)
@@ -96,6 +96,7 @@ const ClientSchedule = () => {
             bookings_count: totalBooked,
             is_booked_by_me: !!myBooking,
             my_booking_id: myBooking?.id,
+            my_booking_status: myBooking?.status,
             my_subscription_id: myBooking?.subscription_id,
             seats_left: Math.max(0, item.capacity - totalBooked)
           };
@@ -162,15 +163,22 @@ const ClientSchedule = () => {
         const minutesLeft = differenceInMinutes(sessionDate, now);
 
         if (minutesLeft < cancellationLimit) {
-            throw new Error(`Отмена невозможна. До начала занятия осталось меньше ${cancellationLimit} мин.`);
+            // Поздняя отмена: меняем статус, занятие НЕ возвращается
+            const { error } = await supabase.from('bookings').update({ status: 'late_cancel' }).eq('id', bookingId);
+            if (error) throw error;
+            return { isLate: true };
         }
 
         const { error: delError } = await supabase.from('bookings').delete().eq('id', bookingId);
         if (delError) throw delError;
-        // visits_remaining возвращается триггером on_booking_change_recalc на бэкенде
+        return { isLate: false };
     },
-    onSuccess: () => {
-        toast.success("Запись отменена, занятие возвращено");
+    onSuccess: (result: any) => {
+        if (result?.isLate) {
+            toast.warning(`Поздняя отмена. Занятие не возвращается (менее ${cancellationLimit} мин до начала).`);
+        } else {
+            toast.success("Запись отменена, занятие возвращено");
+        }
         queryClient.invalidateQueries({ queryKey: ['client_schedule'] });
         queryClient.invalidateQueries({ queryKey: ['portal_home_data'] });
     },
@@ -297,8 +305,13 @@ const ClientSchedule = () => {
                         <div className="shrink-0" onClick={(e) => e.stopPropagation()}> 
                            {/* e.stopPropagation() ВАЖНО: Чтобы клик по кнопке не открывал инфо */}
                            {session.is_booked_by_me ? (
-                                <Button 
-                                    variant="outline" 
+                                session.my_booking_status === 'late_cancel' ? (
+                                    <span className="h-8 text-xs px-3 flex items-center rounded-md bg-red-50 text-red-600 border border-red-200 font-medium">
+                                        Поздняя отмена
+                                    </span>
+                                ) : (
+                                <Button
+                                    variant="outline"
                                     className="h-8 text-xs border-green-200 bg-green-50 text-green-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors px-3 group"
                                     onClick={() => handleCancel(session.my_booking_id, session.my_subscription_id, session.start_time)}
                                     disabled={cancelMutation.isPending}
@@ -314,6 +327,7 @@ const ClientSchedule = () => {
                                         </>
                                     )}
                                 </Button>
+                                )
                             ) : isFull ? (
                                 <Button disabled variant="secondary" className="h-8 text-xs bg-gray-100 text-gray-400 px-3">
                                 Заполнено

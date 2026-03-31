@@ -254,7 +254,10 @@ const Attendance = () => {
                     date, time, className, coachName,
                     client ? `${client.first_name} ${client.last_name || ''}` : "Удален",
                     client?.phone || "-",
-                    booking.status === 'completed' ? 'Пришел' : booking.status === 'cancelled' ? 'Отмена' : 'Записан'
+                    booking.status === 'completed' ? 'Пришел' :
+                                    booking.status === 'absent' ? 'Не пришел' :
+                                    booking.status === 'cancelled' ? 'Отмена' :
+                                    booking.status === 'late_cancel' ? 'Поздняя отмена' : 'Записан'
                 ]);
             });
         } else {
@@ -436,7 +439,9 @@ const Attendance = () => {
                                                 const client = booking.user;
                                                 let bgClass = "bg-blue-50 text-blue-700 border-blue-200";
                                                 if (booking.status === 'completed') bgClass = "bg-green-50 text-green-700 border-green-200";
+                                                if (booking.status === 'absent') bgClass = "bg-orange-50 text-orange-700 border-orange-200";
                                                 if (booking.status === 'cancelled') bgClass = "bg-red-50 text-red-700 border-red-200";
+                                                if (booking.status === 'late_cancel') bgClass = "bg-red-100 text-red-800 border-red-300";
 
                                                 return (
                                                     <div key={booking.id} className="flex justify-between items-center border-b pb-1 last:border-0 last:pb-0 border-gray-100">
@@ -448,7 +453,7 @@ const Attendance = () => {
                                                                     variant="ghost" 
                                                                     className="h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-50"
                                                                     title="Написать в WhatsApp"
-                                                                    onClick={() => sendWhatsApp(client, booking.status === 'cancelled' ? 'cancel' : 'remind', session)}
+                                                                    onClick={() => sendWhatsApp(client, (booking.status === 'cancelled' || booking.status === 'late_cancel') ? 'cancel' : 'remind', session)}
                                                                 >
                                                                     <MessageCircle className="w-4 h-4" />
                                                                 </Button>
@@ -478,7 +483,9 @@ const Attendance = () => {
                                                             <SelectContent>
                                                                 <SelectItem value="booked">Записан</SelectItem>
                                                                 <SelectItem value="completed">Пришел</SelectItem>
-                                                                <SelectItem value="cancelled">Отмена</SelectItem>
+                                                                <SelectItem value="absent">Не пришел</SelectItem>
+                                                                <SelectItem value="cancelled">Отмена (возврат)</SelectItem>
+                                                                <SelectItem value="late_cancel">Поздняя отмена</SelectItem>
                                                             </SelectContent>
                                                         </Select>
                                                     </div>
@@ -533,7 +540,9 @@ const Attendance = () => {
                                   // Определяем цвет для карточки клиента
                                   let bgClass = "bg-slate-50 border-gray-100";
                                   if (booking.status === 'completed') bgClass = "bg-green-50 border-green-100";
+                                  if (booking.status === 'absent') bgClass = "bg-orange-50 border-orange-100";
                                   if (booking.status === 'cancelled') bgClass = "bg-red-50 border-red-100";
+                                  if (booking.status === 'late_cancel') bgClass = "bg-red-100 border-red-200";
 
                                   return (
                                       <div key={booking.id} className={`p-3 rounded-lg border ${bgClass} flex flex-col gap-2`}>
@@ -547,7 +556,7 @@ const Attendance = () => {
                                                       size="sm" 
                                                       variant="outline" 
                                                       className="h-8 w-8 p-0 rounded-full border-green-200 text-green-600 bg-white"
-                                                      onClick={() => sendWhatsApp(client, booking.status === 'cancelled' ? 'cancel' : 'remind', session)}
+                                                      onClick={() => sendWhatsApp(client, (booking.status === 'cancelled' || booking.status === 'late_cancel') ? 'cancel' : 'remind', session)}
                                                   >
                                                       <MessageCircle className="w-4 h-4" />
                                                   </Button>
@@ -574,7 +583,9 @@ const Attendance = () => {
                                               <SelectContent>
                                                   <SelectItem value="booked">📅 Записан</SelectItem>
                                                   <SelectItem value="completed">✅ Пришел</SelectItem>
-                                                  <SelectItem value="cancelled">❌ Отмена</SelectItem>
+                                                  <SelectItem value="absent">⛔ Не пришел</SelectItem>
+                                                  <SelectItem value="cancelled">↩️ Отмена (возврат)</SelectItem>
+                                                  <SelectItem value="late_cancel">🚫 Поздняя отмена</SelectItem>
                                               </SelectContent>
                                           </Select>
                                       </div>
