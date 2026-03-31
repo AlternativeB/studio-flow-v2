@@ -16,7 +16,8 @@ import {
   Dumbbell,
   ShieldCheck,
   DollarSign,
-  ScrollText
+  ScrollText,
+  UserRoundPlus
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ export const Sidebar = () => {
     { name: "Инструкторы", href: "/instructors", icon: UserCog },
     { name: "Новости", href: "/news", icon: Megaphone },
     { name: "Пробные", href: "/trials", icon: Percent },
+    { name: "Новый клиент", href: "/admin/new-client", icon: UserRoundPlus },
     { name: "Агрегаторы", href: "/aggregators", icon: Globe },
     { name: "Все пользователи", href: "/admin/users", icon: ShieldCheck },
     ...(currentUserRole === 'owner' ? [

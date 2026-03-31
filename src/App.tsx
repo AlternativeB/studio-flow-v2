@@ -34,6 +34,7 @@ import AllUsers from "./pages/admin/AllUsers";
 import AdminCheckIn from "./pages/admin/AdminCheckIn";
 import OwnerPayroll from "./pages/OwnerPayroll";
 import OwnerLogs from "./pages/OwnerLogs";
+import NewClient from "./pages/admin/NewClient";
 import TrainerLogin from "./pages/trainer/TrainerLogin";
 import TrainerHome from "./pages/trainer/TrainerHome";
 import TrainerSchedule from "./pages/trainer/TrainerSchedule";
@@ -203,6 +204,7 @@ const App = () => (
             <Route path="/admin/checkin" element={<AdminCheckIn />} />
             <Route path="/owner/payroll" element={<OwnerPayroll />} />
             <Route path="/owner/logs" element={<OwnerLogs />} />
+            <Route path="/admin/new-client" element={<NewClient />} />
           </Route>
 
           {/* === ТРЕНЕРСКИЙ ПОРТАЛ === */}

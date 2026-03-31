@@ -157,9 +157,13 @@ export default function Clients() {
             <FileSpreadsheet className="h-4 w-4" />
             <span className="hidden sm:inline ml-2">Экспорт</span>
           </Button>
-          <Button size="sm" onClick={() => navigate('/trials')}>
+          <Button variant="outline" size="sm" onClick={() => navigate('/admin/new-client')}>
             <UserPlus className="h-4 w-4" />
-            <span className="hidden sm:inline ml-2">Добавить</span>
+            <span className="hidden sm:inline ml-2">Новый клиент</span>
+          </Button>
+          <Button size="sm" onClick={() => navigate('/trials')}>
+            <span className="hidden sm:inline">Пробные</span>
+            <span className="sm:hidden">+</span>
           </Button>
         </div>
       </div>
