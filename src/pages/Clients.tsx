@@ -87,13 +87,14 @@ export default function Clients() {
     mutationFn: async () => {
       const visits = parseInt(editForm.visits_remaining);
       if (isNaN(visits) || visits < 0) throw new Error("Остаток не может быть отрицательным");
-      const { error } = await supabase.from('user_subscriptions').update({
+      const { data, error } = await supabase.from('user_subscriptions').update({
         visits_remaining: visits,
         activation_date: editForm.activation_date || null,
         end_date: editForm.end_date || null,
         is_active: editForm.is_active,
-      }).eq('id', editForm.id);
+      }).eq('id', editForm.id).select('id');
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Нет прав на изменение. Проверьте RLS политику в Supabase.");
     },
     onSuccess: () => {
       toast.success("Абонемент обновлён");
