@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, Pencil, Trash2, X, Check, ChevronsUpDown, Calendar as CalendarIcon, Search } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2, X, Check, ChevronsUpDown, Calendar as CalendarIcon, Search, FileSpreadsheet } from "lucide-react";
+import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -289,11 +290,35 @@ const Subscriptions = () => {
     }
   ];
 
+  const exportToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(filteredSubs.map((sub: any) => {
+      const status = getSubscriptionStatus(sub);
+      return {
+        'Клиент': `${sub.user?.first_name || ''} ${sub.user?.last_name || ''}`.trim(),
+        'Телефон': sub.user?.phone || '',
+        'Тариф': sub.plan?.name || '',
+        'Статус': status.label,
+        'Куплен': sub.start_date ? format(parseISO(sub.start_date), 'dd.MM.yyyy') : '',
+        'Активирован': sub.activation_date ? format(parseISO(sub.activation_date), 'dd.MM.yyyy') : 'не активирован',
+        'Окончание': sub.end_date ? format(parseISO(sub.end_date), 'dd.MM.yyyy') : '—',
+        'Остаток занятий': sub.visits_remaining ?? '∞',
+        'Всего занятий': sub.visits_total ?? '∞',
+      };
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Абонементы");
+    XLSX.writeFile(wb, `subscriptions_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Журнал абонементов</h1>
-        <Dialog open={isSellDialogOpen} onOpenChange={setIsSellDialogOpen}>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToExcel}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Экспорт
+          </Button>
+          <Dialog open={isSellDialogOpen} onOpenChange={setIsSellDialogOpen}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Выдать абонемент</Button>
           </DialogTrigger>
@@ -379,6 +404,7 @@ const Subscriptions = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* ФИЛЬТРЫ */}

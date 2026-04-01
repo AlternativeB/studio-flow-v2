@@ -176,25 +176,23 @@ export default function Clients() {
           <h1 className="text-2xl font-bold tracking-tight">Клиенты</h1>
           <p className="text-xs text-muted-foreground">Управление базой клиентов</p>
         </div>
-        {/* Icon-only buttons on mobile, full buttons on desktop */}
-        <div className="flex gap-1.5 shrink-0">
-          <Button variant="outline" size="icon" className="h-8 w-8 sm:hidden" onClick={exportToExcel} title="Экспорт">
-            <FileSpreadsheet className="h-4 w-4" />
-          </Button>
+        <div className="flex gap-2 shrink-0">
+          {/* Экспорт — только на десктопе */}
           <Button variant="outline" size="sm" className="hidden sm:flex" onClick={exportToExcel}>
             <FileSpreadsheet className="h-4 w-4 mr-2" /> Экспорт
           </Button>
 
-          <Button variant="outline" size="icon" className="h-8 w-8 sm:hidden" onClick={() => navigate('/admin/new-client')} title="Новый клиент">
-            <UserPlus className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => navigate('/admin/new-client')}>
-            <UserPlus className="h-4 w-4 mr-2" /> Новый клиент
+          {/* Пробные — только на десктопе */}
+          <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => navigate('/trials')}>
+            Пробные
           </Button>
 
-          <Button size="sm" className="h-8 text-xs" onClick={() => navigate('/trials')}>
-            <span className="hidden sm:inline">Пробные</span>
-            <span className="sm:hidden text-xs">Пробные</span>
+          {/* Новый клиент — на мобильном большая, на десктопе обычная */}
+          <Button size="sm" className="sm:hidden h-10 px-4 text-sm font-semibold" onClick={() => navigate('/admin/new-client')}>
+            <UserPlus className="h-4 w-4 mr-2" /> Новый клиент
+          </Button>
+          <Button size="sm" className="hidden sm:flex" onClick={() => navigate('/admin/new-client')}>
+            <UserPlus className="h-4 w-4 mr-2" /> Новый клиент
           </Button>
         </div>
       </div>
