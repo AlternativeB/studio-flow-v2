@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Download, X, Plus, Search, Check, MessageCircle, Megaphone } from "lucide-react";
+import { Loader2, Download, X, Plus, Search, Check, MessageCircle, Megaphone, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -166,6 +166,18 @@ const Attendance = () => {
       queryClient.invalidateQueries({ queryKey: ['attendance_report'] });
     },
     onError: (err: any) => toast.error(err.message)
+  });
+
+  const deleteBookingMutation = useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { error } = await supabase.from('bookings').delete().eq('id', bookingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Запись удалена");
+      queryClient.invalidateQueries({ queryKey: ['attendance_report'] });
+    },
+    onError: (err: any) => toast.error("Ошибка: " + err.message),
   });
 
   const updateStatusMutation = useMutation({
@@ -464,6 +476,7 @@ const Attendance = () => {
                                                                 <div className="text-xs text-gray-400">{client?.phone}</div>
                                                             </div>
                                                         </div>
+                                                        <div className="flex items-center gap-1">
                                                         <Select
                                                             defaultValue={booking.status}
                                                             disabled={pendingBookingId === booking.id}
@@ -488,6 +501,20 @@ const Attendance = () => {
                                                                 <SelectItem value="late_cancel">Поздняя отмена</SelectItem>
                                                             </SelectContent>
                                                         </Select>
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="h-7 w-7 text-gray-300 hover:text-red-500 hover:bg-red-50 shrink-0"
+                                                            title="Удалить запись"
+                                                            disabled={deleteBookingMutation.isPending}
+                                                            onClick={() => {
+                                                                if (confirm(`Удалить запись ${client?.first_name || ''}? Занятие вернётся на абонемент.`))
+                                                                    deleteBookingMutation.mutate(booking.id);
+                                                            }}
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                        </div>
                                                     </div>
                                                 );
                                             })
@@ -563,7 +590,8 @@ const Attendance = () => {
                                               )}
                                           </div>
 
-                                          {/* Управление статусом */}
+                                          {/* Управление статусом + удаление */}
+                                          <div className="flex gap-2 items-center">
                                           <Select
                                               defaultValue={booking.status}
                                               disabled={pendingBookingId === booking.id}
@@ -577,7 +605,7 @@ const Attendance = () => {
                                                   });
                                               }}
                                           >
-                                              <SelectTrigger className="w-full h-8 text-xs font-medium bg-white shadow-sm border-gray-200">
+                                              <SelectTrigger className="flex-1 h-8 text-xs font-medium bg-white shadow-sm border-gray-200">
                                                   <SelectValue />
                                               </SelectTrigger>
                                               <SelectContent>
@@ -588,6 +616,19 @@ const Attendance = () => {
                                                   <SelectItem value="late_cancel">🚫 Поздняя отмена</SelectItem>
                                               </SelectContent>
                                           </Select>
+                                          <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-8 w-8 shrink-0 text-gray-300 hover:text-red-500 hover:bg-red-50"
+                                              disabled={deleteBookingMutation.isPending}
+                                              onClick={() => {
+                                                  if (confirm(`Удалить запись ${client?.first_name || ''}? Занятие вернётся на абонемент.`))
+                                                      deleteBookingMutation.mutate(booking.id);
+                                              }}
+                                          >
+                                              <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                          </div>
                                       </div>
                                   );
                               })
