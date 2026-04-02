@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { format, addDays, addWeeks, isSameDay, startOfWeek, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, UserPlus, Search, Users, Loader2, Phone, Globe } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserPlus, Search, Users, Loader2, Phone, Globe, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -90,6 +90,18 @@ const AdminCheckIn = () => {
       setPendingBookingId(null);
       toast.error(err.message);
     },
+  });
+
+  const deleteBookingMutation = useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { error } = await supabase.from("bookings").delete().eq("id", bookingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Запись удалена");
+      queryClient.invalidateQueries({ queryKey: ["checkin_day", format(selectedDay, "yyyy-MM-dd")] });
+    },
+    onError: (err: any) => toast.error(err.message),
   });
 
   const walkInMutation = useMutation({
@@ -293,7 +305,7 @@ const AdminCheckIn = () => {
                             updateStatusMutation.mutate({ bookingId: booking.id, status: val });
                           }}
                         >
-                          <SelectTrigger className="w-[110px] h-7 text-[11px] shrink-0 font-medium">
+                          <SelectTrigger className="w-[100px] h-7 text-[11px] shrink-0 font-medium">
                             {pendingBookingId === booking.id ? (
                               <Loader2 className="h-3 w-3 animate-spin mx-auto" />
                             ) : (
@@ -308,6 +320,18 @@ const AdminCheckIn = () => {
                             <SelectItem value="late_cancel">Поздняя отм.</SelectItem>
                           </SelectContent>
                         </Select>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0 text-gray-300 hover:text-red-500 hover:bg-red-50"
+                          disabled={deleteBookingMutation.isPending}
+                          onClick={() => {
+                            if (confirm(`Удалить запись ${client?.first_name || ""}?`))
+                              deleteBookingMutation.mutate(booking.id);
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     );
                   })
