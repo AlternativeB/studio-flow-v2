@@ -1,7 +1,7 @@
 import { StatCard } from "@/components/dashboard/StatCard";
 import { UpcomingClasses } from "@/components/dashboard/UpcomingClasses";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { Users, CreditCard, TrendingUp, Loader2 } from "lucide-react";
+import { Users, TrendingUp, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { startOfMonth } from "date-fns";
@@ -70,20 +70,12 @@ const Dashboard = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2">
         <StatCard
           title="Всего клиентов"
           value={stats?.clients || 0}
           icon={Users}
           change="В базе"
-        />
-        <StatCard
-          title="Выручка (Месяц)"
-          value={`${(stats?.revenue || 0).toLocaleString()} ₸`}
-          icon={CreditCard}
-          change="С начала месяца"
-          changeType="positive"
-          iconColor="bg-green-100 text-green-600"
         />
         <StatCard
           title="Активность"

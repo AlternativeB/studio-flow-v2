@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Calendar, Users, Percent, Menu, ClipboardCheck, Globe, DollarSign } from "lucide-react";
+import { Calendar, Users, Percent, Settings2, ClipboardCheck, Globe, DollarSign } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
@@ -23,7 +23,7 @@ export const MobileNav = () => {
     { name: "Записать", href: "/admin/checkin", icon: ClipboardCheck },
     { name: "Клиенты", href: "/clients", icon: Users },
     { name: "Пробные", href: "/trials", icon: Percent },
-    { name: "Меню", href: "/dashboard", icon: Menu },
+    { name: "Управление", href: "/admin/manage", icon: Settings2 },
   ];
 
   const ownerNav = [
